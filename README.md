@@ -19,6 +19,7 @@ Para usar, abra **<https://carolmoraiss.github.io/bolso-em-dia/>** no computador
 - **Gastos do ano**: IPVA, licenciamento e seguros, à vista ou parcelados. Para os de pagamento à vista, a página separa um pouco por mês até o vencimento.
 - **Porquinhos**: metas com ou sem prazo. A página calcula quanto guardar por mês e avisa quando o ritmo atual não chega a tempo.
 - **Besteiras**: um teto mensal para os gastos pequenos, com anotação rápida pelo botão **Anotar**.
+- **FGTS**: para quem tem carteira assinada. Calcula o depósito do mês, o 13º, o adicional de férias e o rendimento de 3% ao ano mais a TR, atualiza o saldo a cada mês fechado e mostra uma estimativa para os próximos 3 anos.
 - **Fechar o mês**: avança para o mês seguinte, desconta as parcelas, registra o que foi quitado e enche os porquinhos. Os próximos 12 meses aparecem projetados.
 - **Relatório**: uma folha pronta para imprimir ou salvar em PDF, só com as seções que você escolher.
 - **Feito para o celular**: navegação inferior, blocos que abrem quando você precisa, tema claro e escuro e animações que respeitam a opção "Reduzir movimento" do sistema.
@@ -33,11 +34,22 @@ O Tostão funciona com regras simples escritas no próprio código: não usa int
 | As besteiras passaram do teto | quanto passou, com um atalho para a aba Besteiras |
 | Um porquinho não vai chegar a tempo | quanto você guarda hoje e quanto precisaria guardar por mês |
 | Um gasto anual está sem valor ou sem mês | "Você esqueceu de informar o mês de vencimento de Licenciamento." |
+| O FGTS está ligado, mas sem o salário bruto | pede o bruto para o depósito ficar exato |
 | É a última parcela de algo | comemora e diz quanto sobra a partir do mês seguinte |
 | A fatura do cartão vai diminuir | o valor da próxima fatura e quanto ela diminui |
 | Uma semana sem anotar besteira | pergunta se você não esqueceu de alguma |
 | Muito tempo sem backup (no modo arquivo) | sugere exportar uma cópia |
 | O mês foi fechado no azul | "Você, Ana, economizou bastante em outubro, parabéns!" |
+
+### Como o FGTS é calculado
+
+Quando o FGTS está ligado na aba de mesmo nome, cada mês fechado faz três coisas:
+
+- **Depósito:** soma 8% do salário bruto (2% para jovem aprendiz; o percentual pode ser trocado). Com 13º salário, entram mais 8% dele, metade em novembro e metade em dezembro. No mês das férias, entram mais 8% sobre o terço de férias.
+- **Rendimento:** o saldo rende 3% ao ano, capitalizados por mês (0,2466% ao mês), mais a TR do mês: `(1 + TR) × (1 + 0,2466%) − 1`. A TR muda todo mês, e o valor padrão é 0,15% ao mês, perto de onde ela ficou em 2026.
+- **Saldo novo:** saldo + rendimento + depósito.
+
+A aba mostra a conta do mês atual e uma estimativa para os próximos 3 anos, com gráfico e tabela ano a ano. Ela também entra no relatório. A estimativa usa o salário de hoje e não conta aumentos, saques nem a distribuição anual de lucros do fundo. Desde 2024, o [STF garante](https://noticias.stf.jus.br/postsnoticias/saldos-do-fgts-devem-ser-corrigidas-no-minimo-pelo-indice-da-inflacao-decide-stf/) que o FGTS renda pelo menos a inflação (IPCA). Como essas partes ficam de fora, o saldo real tende a ser um pouco maior. Para alinhar com o extrato do app FGTS, basta corrigir o saldo.
 
 ## Como usar
 
@@ -123,7 +135,7 @@ No link do GitHub Pages ou no arquivo, use **⋯ › Exportar backup**. No link 
 | Besteiras | todas as anotações, cada uma com o seu mês |
 | Meses | uma linha por mês fechado: salário, contas, porquinhos, besteiras e quanto ficou livre |
 | Quitadas | o que terminou de ser pago e em que mês |
-| Config | nome, mês de referência, salário, margem, teto e controle de versão |
+| Config | nome, mês de referência, salário, margem, teto, dados do FGTS e controle de versão |
 
 ## Segurança
 
