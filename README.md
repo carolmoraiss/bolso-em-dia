@@ -1,0 +1,183 @@
+# Bolso em Dia
+
+Controle de finanças pessoais que cabe num arquivo HTML: salário, contas fixas, parcelas, cartão de crédito, gastos anuais (IPVA, licenciamento), porquinhos e as pequenas besteiras do dia a dia.
+
+Funciona de dois jeitos: aberto direto no navegador, sem conta e sem servidor, ou publicado no Google Apps Script, com os dados numa planilha do Google Sheets da sua conta e sincronizados entre o computador e o celular.
+
+<p align="center">
+  <img src="docs/visao-geral.png" alt="Visão geral no computador: salário, quanto fica livre, quanto dá para guardar, recado do Tostão e para onde vai o salário" width="71%">
+  <img src="docs/celular.png" alt="A mesma tela no celular, no tema escuro, com a navegação inferior" width="25%">
+</p>
+
+<p align="center"><sub>As capturas usam dados fictícios.</sub></p>
+
+## O que dá para fazer
+
+- **Ver o mês de uma vez**: quanto entra, quanto já está comprometido, quanto fica livre e quanto dá para guardar sem apertar, sempre com uma margem para imprevistos.
+- **Contas e parcelas**: contas fixas, assinaturas e empréstimos, com quantas parcelas faltam e o mês em que cada uma termina.
+- **Cartão de crédito**: compras parceladas, limite usado e a fatura dos próximos meses.
+- **Gastos do ano**: IPVA, licenciamento e seguros, à vista ou parcelados. Para os de pagamento à vista, a página separa um pouco por mês até o vencimento.
+- **Porquinhos**: metas com ou sem prazo. A página calcula quanto guardar por mês e avisa quando o ritmo atual não chega a tempo.
+- **Besteiras**: um teto mensal para os gastos pequenos, com anotação rápida pelo botão **Anotar**.
+- **Fechar o mês**: avança para o mês seguinte, desconta as parcelas, registra o que foi quitado e enche os porquinhos. Os próximos 12 meses aparecem projetados.
+- **Relatório**: uma folha pronta para imprimir ou salvar em PDF, só com as seções que você escolher.
+- **Feito para o celular**: navegação inferior, blocos que abrem quando você precisa, tema claro e escuro e animações que respeitam a opção "Reduzir movimento" do sistema.
+
+### Tostão, o mascote
+
+O Tostão funciona com regras simples escritas no próprio código: não usa inteligência artificial e não manda nada para fora. A cada mudança, ele olha os números do mês e mostra o recado mais importante. Os outros ficam em **Mais recados**.
+
+| Quando | O que ele diz |
+|---|---|
+| O dinheiro não fecha o mês | "Você, Ana, está se passando esse mês: faltam R$ 120,00 para fechar a conta. Poupe money, bicha!" |
+| As besteiras passaram do teto | quanto passou, com um atalho para a aba Besteiras |
+| Um porquinho não vai chegar a tempo | quanto você guarda hoje e quanto precisaria guardar por mês |
+| Um gasto anual está sem valor ou sem mês | "Você esqueceu de informar o mês de vencimento de Licenciamento." |
+| É a última parcela de algo | comemora e diz quanto sobra a partir do mês seguinte |
+| A fatura do cartão vai diminuir | o valor da próxima fatura e quanto ela diminui |
+| Uma semana sem anotar besteira | pergunta se você não esqueceu de alguma |
+| Muito tempo sem backup (no modo arquivo) | sugere exportar uma cópia |
+| O mês foi fechado no azul | "Você, Ana, economizou bastante em outubro, parabéns!" |
+
+## Como usar
+
+Os dois jeitos têm as mesmas telas. A diferença é onde os dados ficam guardados.
+
+| | Arquivo no navegador | Google Apps Script |
+|---|---|---|
+| Onde ficam os dados | no navegador em que você abriu | numa planilha do Google Sheets da sua conta, com uma cópia no aparelho |
+| Computador e celular juntos | não; o backup leva os dados de um para o outro | sim, pelo mesmo link |
+| Precisa de conta | não | conta Google |
+| Instalação | nenhuma | uma vez, uns 10 minutos |
+
+No primeiro acesso, o Tostão pergunta só o seu nome e o salário. Depois disso, o guia **Primeiros passos** mostra o que falta preencher (contas, cartão, gastos do ano, um porquinho e o teto de besteiras) e some quando tudo está pronto. A aba **Perfil** mostra o nome, desde quando você usa, a conta Google vinculada e onde os dados estão guardados.
+
+### No navegador
+
+1. Baixe o `bolso-em-dia.html` da [última versão publicada](https://github.com/carolmoraiss/bolso-em-dia/releases/latest) ou gere o arquivo a partir do código com `python3 montar.py` (ele fica em `dist/bolso-em-dia.html`).
+2. Abra o arquivo no navegador.
+
+Para levar os dados para outro aparelho, use **⋯ › Exportar backup** num aparelho e **⋯ › Importar backup** no outro.
+
+### No Google, sincronizado
+
+A página roda como app da Web no Google Apps Script, com acesso **Somente eu**, e grava tudo numa planilha chamada **Bolso em Dia** criada na sua conta.
+
+#### Instalação pelo terminal
+
+Precisa de Node.js e Python 3.
+
+1. Ligue a **API do Google Apps Script** em <https://script.google.com/home/usersettings>.
+2. Entre com a sua conta Google (o navegador vai abrir):
+   ```bash
+   npx --yes @google/clasp@3.4.1 login
+   ```
+3. Rode o instalador. Ele cria a planilha, envia o código, publica o app e mostra o link:
+   ```bash
+   ./instalar.sh
+   ```
+4. Abra o link. Na primeira vez, o Google pede autorização: **Revisar permissões › sua conta › Avançado › Acessar Bolso em Dia › Permitir**.
+
+Para publicar uma versão nova mantendo o mesmo link, rode `./atualizar.sh`.
+
+#### Instalação pelo navegador
+
+1. Abra <https://sheets.new> e dê o nome **Bolso em Dia** para a planilha.
+2. No menu da planilha, abra **Extensões › Apps Script**.
+3. No arquivo `Código.gs`, apague tudo e cole o conteúdo de [`Code.gs`](Code.gs).
+4. Clique no **+** ao lado de "Arquivos", escolha **HTML**, dê o nome **`Index`** (sem `.html`) e cole o conteúdo de `Index.html`. O arquivo está na [última versão publicada](https://github.com/carolmoraiss/bolso-em-dia/releases/latest), ou em `dist/Index.html` depois de rodar `python3 montar.py`.
+5. Em **Configurações do projeto** (ícone de engrenagem), marque **Mostrar o arquivo de manifesto "appsscript.json" no editor**. Volte ao editor e troque o conteúdo desse arquivo pelo de [`appsscript.json`](appsscript.json). Isso limita o script a duas permissões e acerta o fuso horário.
+6. Salve e vá em **Implantar › Nova implantação**. Na engrenagem ao lado de "Selecionar tipo", escolha **App da Web** e configure:
+   - Executar como: **Eu**
+   - Quem pode acessar: **Somente eu**
+7. Clique em **Implantar › Autorizar acesso** e escolha sua conta. O Google avisa que não verificou o app: clique em **Avançado › Acessar Bolso em Dia (não seguro)**. O aviso aparece porque o script é seu e roda só na sua conta.
+8. Copie o **URL do app da Web** (termina em `/exec`) e abra no computador e no celular. No celular, a opção **Adicionar à tela inicial** deixa a página com cara de aplicativo.
+
+Para atualizar depois: cole os arquivos novos nos mesmos lugares e vá em **Implantar › Gerenciar implantações › lápis › Versão: Nova versão › Implantar**. O link continua o mesmo.
+
+#### Levar os dados do arquivo para o Google
+
+No arquivo, use **⋯ › Exportar backup**. No link do Google, use **⋯ › Importar backup**, ou **Tenho um backup** na tela de boas-vindas.
+
+## Como os dados são salvos no Google
+
+- Cada alteração vai para a planilha alguns segundos depois. O status aparece embaixo do nome **Bolso em Dia**. Toque nele para salvar ou buscar na hora.
+- Sem internet, a alteração fica guardada no aparelho e é enviada quando a conexão volta.
+- Cada gravação ganha um número de versão. Se outro aparelho, ou uma edição direto na planilha, mudou algo antes, a página pergunta qual versão manter em vez de sobrescrever.
+- Dá para editar direto na planilha, desde que a ordem das colunas e o nome das abas continuem iguais.
+
+| Aba | O que tem |
+|---|---|
+| Contas | contas do mês, assinaturas e empréstimos |
+| Cartão | valor da parcela, parcela atual e total |
+| Anuais | IPVA, licenciamento e outros, à vista ou parcelados |
+| Porquinhos | meta, quanto já foi guardado, prazo e quanto guardar por mês |
+| Besteiras | todas as anotações, cada uma com o seu mês |
+| Meses | uma linha por mês fechado: salário, contas, porquinhos, besteiras e quanto ficou livre |
+| Quitadas | o que terminou de ser pago e em que mês |
+| Config | nome, mês de referência, salário, margem, teto e controle de versão |
+
+## Segurança
+
+**O que o projeto já faz**
+
+- **Acesso restrito**: o app é publicado com acesso **Somente eu**, e só a sua conta Google abre o link. O manifesto limita o script a duas permissões: suas planilhas e o seu e-mail, usado para mostrar a conta vinculada.
+- **Validação na entrada**: tudo o que chega de fora (planilha, backup importado, armazenamento do navegador) passa por uma única função de validação antes de aparecer na tela. Ela aceita só campos conhecidos, números finitos, textos curtos sem caracteres de controle e datas e códigos em formato fixo. Textos livres são escapados antes de virar HTML. Isso impede que um backup adulterado, ou alguém com acesso à planilha, rode código na página.
+- **Sem injeção de fórmula**: textos que começam com `=`, `+`, `-` ou `@` são gravados na planilha como texto, nunca como fórmula. Isso impede, por exemplo, uma fórmula que mande os dados da planilha para outro site.
+- **Limites no servidor**: envios grandes demais ou fora do formato são recusados, e a gravação usa trava para dois aparelhos não escreverem ao mesmo tempo.
+- **Backup com senha**: **⋯ › Exportar backup** oferece proteger o arquivo com senha, usando AES-256-GCM e chave derivada com PBKDF2-SHA256 em 310 mil iterações. Sem a senha o arquivo é ilegível, e se ele for alterado a importação é recusada.
+- **Arquivo local isolado**: a versão para abrir no navegador traz uma Content Security Policy que impede a página de carregar ou enviar qualquer coisa para outros sites, com exceção das fontes do Google. Nenhum endereço é enviado junto (referrer desligado).
+- **Nenhuma biblioteca de terceiros** dentro da página ou do servidor. As ferramentas de desenvolvimento ficam com versão exata no `package.json`, e o `npm audit` não aponta nenhuma falha.
+- **Computador emprestado**: **⋯ › Apagar dados deste aparelho** remove a cópia do navegador. No modo Google, os dados continuam na planilha.
+
+**O que depende de você**
+
+- Mantenha **Quem pode acessar** em **Somente eu**.
+- Não compartilhe a planilha: quem tiver acesso a ela vê tudo.
+- Prefira o backup **com senha**, principalmente se for mandar o arquivo por mensagem ou e-mail.
+- O `clasp` guarda uma chave de acesso em `~/.clasprc.json` (os scripts deixam esse arquivo legível só pelo seu usuário). Se não for atualizar a página por um tempo, rode `npx --yes @google/clasp@3.4.1 logout` ou revogue o acesso em <https://myaccount.google.com/permissions>.
+- O `clasp` 3.4.1, a versão mais recente, tem 8 alertas do `npm audit` (6 moderados e 2 altos) em dependências internas como `zod`, `minimatch` e `glob`. São falhas de travamento por excesso de dados locais, e a única correção disponível quebra o próprio `clasp`. Ele só roda na sua máquina na hora de instalar ou atualizar. Se preferir não usar nenhuma dependência, faça a instalação pelo navegador.
+
+## Desenvolvimento
+
+Requisitos: Node.js 22.22.2 ou mais novo (ou 24.15+ ou 26+), npm e Python 3.
+
+```bash
+npm ci
+npm run build    # gera dist/Index.html e dist/bolso-em-dia.html
+npm run lint     # ESLint, Stylelint e html-validate
+npm test         # testes de cálculo, validação, criptografia e servidor
+npm run check    # lint, testes e npm audit
+```
+
+Os testes usam o executor nativo do Node (`node:test`) e rodam o `Code.gs` de verdade contra uma planilha simulada em memória, com dados fictícios.
+
+### Estrutura
+
+| Caminho | O que é |
+|---|---|
+| `fonte/cabecalho.html` | `<head>` da página, com os marcadores `{{CSP}}` e `{{ESTILO}}` |
+| `fonte/estilo.css` | todo o CSS, com as cores em variáveis para os temas claro e escuro |
+| `fonte/corpo.html` | marcação: abas, blocos, navegação e diálogos |
+| `fonte/app.js` | cálculos, telas, Tostão, movimento, sincronização e backup |
+| `Code.gs` | servidor no Apps Script: lê e grava a planilha |
+| `appsscript.json` | manifesto: fuso horário, acesso **Somente eu** e as duas permissões |
+| `montar.py` | junta `fonte/` em `dist/Index.html` (Apps Script) e `dist/bolso-em-dia.html` (arquivo local, com CSP) |
+| `instalar.sh`, `atualizar.sh` | instalação e atualização pelo terminal, com `clasp` |
+| `testes/` | testes automatizados |
+| `docs/` | imagens deste README |
+
+### Decisões técnicas
+
+- **Um único HTML, sem framework**: HTML, CSS e JavaScript puros. O Apps Script serve um arquivo HTML só, e esse mesmo arquivo abre sem internet no navegador. O `montar.py` apenas junta as partes.
+- **Recursos nativos do navegador**: gráficos em SVG, animações com Web Animations API e View Transitions, criptografia com Web Crypto. Não há dependência para manter atualizada dentro da página.
+- **Uma porta de entrada para os dados**: a função `normalizar()` valida tudo o que chega do navegador, da planilha ou de um backup, e as migrações de formato acontecem logo depois dela.
+- **Concorrência otimista**: o número de versão fica na aba Config. Uma gravação com versão desatualizada vira conflito em vez de sobrescrever, e o gatilho `onEdit` sobe a versão quando alguém edita a planilha à mão.
+- **Duas saídas do mesmo código**: a versão do Apps Script não leva CSP própria, porque o Google serve a página num iframe isolado em `googleusercontent.com` e injeta os próprios scripts. A versão local leva uma CSP que bloqueia qualquer conexão.
+- **Media queries com `min-width`/`max-width`**: a sintaxe de intervalo (`width <= 600px`) não funciona no Safari anterior ao 16.4, ainda comum em Macs e iPhones mais antigos. A regra do Stylelint está configurada para exigir a forma compatível.
+
+## Problemas comuns
+
+- **"Não foi possível abrir o arquivo" no celular**: acontece quando o navegador tem mais de uma conta Google conectada. Abra numa aba anônima entrando só com a sua conta, ou saia das outras contas nesse navegador.
+- **O botão de imprimir não abre dentro do Google**: na aba **Relatório**, use **Abrir em nova aba** e imprima ou salve em PDF por lá.
+- **A página abriu nas boas-vindas, mas eu já tinha dados**: use **Tenho um backup** e escolha o arquivo exportado.

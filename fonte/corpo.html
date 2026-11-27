@@ -1,0 +1,386 @@
+<body>
+<noscript><div class="noscript"><b>Esta página precisa de JavaScript para funcionar.</b> Abra o arquivo no Chrome, Safari ou Firefox. Visualizadores de arquivo (WhatsApp, Google Drive, app Arquivos do iPhone) mostram a página sem os botões funcionarem.</div></noscript>
+<header class="topo">
+  <div class="wrap topo-in">
+    <div class="marca">
+      <span class="selo" data-icon="porco"></span>
+      <div>
+        <h1>Bolso em Dia</h1>
+        <p class="sub">Salário, contas, cartão e porquinhos no mesmo lugar</p>
+        <button type="button" class="sync" id="syncStatus">Verificando onde salvar…</button>
+      </div>
+    </div>
+    <div class="topo-acoes">
+      <div class="mes-ref">
+        <span class="eyebrow">Mês de referência</span>
+        <strong id="mesRefLabel"></strong>
+        <small class="atraso" id="mesAtraso" hidden>Mês ainda não fechado</small>
+      </div>
+      <button type="button" class="btn" id="btnFecharMes" title="Use no fim do mês, depois de pagar as contas"><span data-icon="calendario"></span>Fechar o mês</button>
+    </div>
+    <div class="topo-icones">
+      <a class="avatar" href="#perfil" aria-label="Abrir seu perfil" title="Seu perfil"><span id="avatarLetra">?</span></a>
+      <button type="button" class="btn btn-icon" id="btnTema" aria-label="Mudar o tema">Tema</button>
+      <details class="menu" id="menu">
+        <summary class="btn btn-icon" aria-label="Mais opções" title="Mais opções"><span data-icon="pontos"></span></summary>
+        <div class="menu-pop">
+          <p class="menu-conta" id="menuConta" hidden></p>
+          <a class="menu-item" id="linkPlanilha" href="#" target="_blank" rel="noopener noreferrer" hidden><span data-icon="planilha"></span>Abrir planilha no Google</a>
+          <button type="button" class="menu-item" data-acao="relatorio"><span data-icon="impressora"></span>Gerar relatório</button>
+          <button type="button" class="menu-item" data-acao="exportar"><span data-icon="baixar"></span>Exportar backup</button>
+          <button type="button" class="menu-item" data-acao="importar"><span data-icon="subir"></span>Importar backup</button>
+          <hr>
+          <button type="button" class="menu-item" data-acao="limpar"><span data-icon="cadeado"></span>Apagar dados deste aparelho</button>
+          <button type="button" class="menu-item perigo" data-acao="recomecar"><span data-icon="reset"></span>Recomeçar do zero</button>
+        </div>
+      </details>
+      <input type="file" id="arquivoBackup" accept="application/json,.json" hidden>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="wrap resumo" aria-label="Resumo do mês">
+    <div class="card salario-card">
+      <label class="eyebrow" for="inSalario">Salário líquido</label>
+      <div class="money-big"><span>R$</span><input type="text" id="inSalario" data-g="salario" data-t="money" inputmode="decimal" autocomplete="off"></div>
+      <p class="hint">Entra todo mês. Toque no valor para mudar.</p>
+      <dl class="mini-dl" id="salarioDl"></dl>
+    </div>
+    <div class="card hero-card">
+      <canvas id="roseta" width="300" height="300" aria-hidden="true"></canvas>
+      <span class="eyebrow">Livre depois de tudo</span>
+      <div class="hero-num" id="heroLivre" data-contar="zero"></div>
+      <div id="heroStatus"></div>
+      <p class="hint" id="heroHint"></p>
+    </div>
+    <div class="card guardar-card">
+      <span class="eyebrow">Dá pra guardar sem apertar</span>
+      <div class="num-lg" id="guardavel" data-contar="zero"></div>
+      <div class="meter m-porq" id="guardMeter"><span></span></div>
+      <p class="hint" id="guardHint"></p>
+      <p class="hint margem-linha" id="margemLinha"></p>
+    </div>
+  </section>
+
+  <div class="wrap aviso-exemplos" id="avisoExemplos"></div>
+  <div class="wrap aviso-mes" id="avisoMes"></div>
+
+  <nav class="wrap abas-nav" aria-label="Seções">
+    <div class="abas" role="tablist">
+      <button type="button" class="aba" role="tab" id="aba-visao" data-aba="visao" aria-controls="painel-visao">Visão geral</button>
+      <button type="button" class="aba" role="tab" id="aba-contas" data-aba="contas" aria-controls="painel-contas">Contas <span class="cont" data-cont="contas"></span></button>
+      <button type="button" class="aba" role="tab" id="aba-cartao" data-aba="cartao" aria-controls="painel-cartao">Cartão <span class="cont" data-cont="cartao"></span></button>
+      <button type="button" class="aba" role="tab" id="aba-anuais" data-aba="anuais" aria-controls="painel-anuais">Anuais <span class="cont" data-cont="anuais"></span></button>
+      <button type="button" class="aba" role="tab" id="aba-porquinhos" data-aba="porquinhos" aria-controls="painel-porquinhos">Porquinhos <span class="cont" data-cont="porquinhos"></span></button>
+      <button type="button" class="aba" role="tab" id="aba-besteiras" data-aba="besteiras" aria-controls="painel-besteiras">Besteiras <span class="cont" data-cont="besteiras"></span></button>
+      <button type="button" class="aba" role="tab" id="aba-relatorio" data-aba="relatorio" aria-controls="painel-relatorio">Relatório</button>
+      <button type="button" class="aba" role="tab" id="aba-perfil" data-aba="perfil" aria-controls="painel-perfil">Perfil</button>
+      <span class="abas-indicador" aria-hidden="true"></span>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <section class="painel" id="painel-visao" role="tabpanel" aria-labelledby="aba-visao">
+      <div id="dicaTostao"></div>
+      <div id="primeirosPassos"></div>
+      <div id="avisoAnuais"></div>
+      <div class="grade grade-visao">
+        <article class="card">
+          <header class="card-head"><h2>Para onde vai o salário</h2><p class="hint" id="destinoSub"></p></header>
+          <div class="seg-bar" id="segBar"></div>
+          <ul class="legenda" id="segLegenda"></ul>
+        </article>
+        <details class="card dobra" data-dobra>
+          <summary class="card-head"><h2>Dívidas e parcelas</h2><span class="hint">Somando todas as parcelas que ainda faltam</span><span class="dobra-resumo" id="devoResumo"></span></summary>
+          <div class="num-lg" id="devoTotal"></div>
+          <ul class="lista-div" id="listaDividas"></ul>
+        </details>
+      </div>
+      <details class="card dobra" data-dobra>
+        <summary class="card-head"><h2>Próximos 12 meses</h2><span class="hint">Quanto fica livre em cada mês, já contando parcelas que acabam e porquinhos que enchem.</span><span class="dobra-resumo" id="projResumo"></span></summary>
+        <div class="grafico" id="grafProj"></div>
+        <ul class="eventos" id="eventosProj"></ul>
+        <details class="det-tabela"><summary>Ver em tabela</summary><div class="tbl-scroll"><table class="rel" id="tabProj"></table></div></details>
+      </details>
+    </section>
+
+    <section class="painel" id="painel-contas" role="tabpanel" aria-labelledby="aba-contas" hidden>
+      <header class="sec-head">
+        <div><h2>Contas do mês</h2><p class="hint">O que sai todo mês fora do cartão. Em parcelas, coloque quantas faltam contando a deste mês. Deixe vazio se a conta não tem fim.</p></div>
+        <div class="total-box"><span class="eyebrow">Total por mês</span><strong id="contasTotal"></strong></div>
+      </header>
+      <div class="grade grade-lado">
+        <div class="grade-col">
+          <div class="card">
+            <div class="linha-tit"><h3>Casa e dia a dia</h3><span class="sub-total" id="outrasTotal"></span></div>
+            <div class="tabela tabela-titulada" id="listaContas"></div>
+            <div class="acoes-lista"><button type="button" class="btn" data-add="contas"><span data-icon="mais"></span>Adicionar conta</button></div>
+          </div>
+          <div class="card">
+            <div class="linha-tit"><h3>Assinaturas e serviços</h3><span class="sub-total" id="assinTotal"></span></div>
+            <p class="hint">Streaming, apps e seguros que cobram todo mês até você cancelar.</p>
+            <div class="tabela tabela-titulada" id="listaAssin"></div>
+            <div class="acoes-lista">
+              <button type="button" class="btn" data-add="assinaturas"><span data-icon="mais"></span>Adicionar assinatura</button>
+              <div class="sugestoes" id="sugAssin"></div>
+            </div>
+          </div>
+        </div>
+        <aside aria-label="Contas por categoria"><details class="card dobra" data-dobra><summary><h3>Por categoria</h3></summary><ul class="hbars" id="contasCat"></ul></details></aside>
+      </div>
+    </section>
+
+    <section class="painel" id="painel-cartao" role="tabpanel" aria-labelledby="aba-cartao" hidden>
+      <header class="sec-head">
+        <div><h2>Cartão de crédito</h2><p class="hint">O que cai na fatura: parcelas de compras e cobranças que vêm todo mês, como o seguro do carro. Em "Parcela atual", use o número da parcela que cai na fatura do mês de referência. Deixe o total vazio se a cobrança não tem fim.</p></div>
+        <div class="total-box"><span class="eyebrow" id="ctFaturaRot">Fatura deste mês</span><strong id="ctFatura"></strong></div>
+      </header>
+      <div class="grade grade-lado">
+        <div class="card">
+          <div class="tabela" id="listaCartao"></div>
+          <form class="form-compra" id="formCartao" autocomplete="off">
+            <h3>Lançar no cartão</h3>
+            <div class="form-grid form-cartao">
+              <label class="campo-rot"><span class="lbl">Descrição</span><span class="cx boxed"><input type="text" id="fcNome" placeholder="Ex.: Shopee, ingresso, farmácia"></span></label>
+              <label class="campo-rot"><span class="lbl">Valor da parcela</span><span class="cx boxed num"><span>R$</span><input type="text" id="fcValor" inputmode="decimal" placeholder="0,00"></span></label>
+              <label class="campo-rot"><span class="lbl">Parcela atual</span><span class="cx boxed num"><input type="text" id="fcAtual" inputmode="numeric" placeholder="1"></span></label>
+              <label class="campo-rot"><span class="lbl">De quantas</span><span class="cx boxed num"><input type="text" id="fcTotal" inputmode="numeric" placeholder="todo mês"></span></label>
+              <button class="btn btn-primary" type="submit"><span data-icon="mais"></span>Lançar</button>
+            </div>
+            <p class="hint" id="fcPreview"></p>
+          </form>
+        </div>
+        <aside class="grade-col" aria-label="Faturas e limite do cartão">
+          <details class="card dobra" data-dobra><summary><h3>Faturas dos próximos meses <small class="muted">(R$)</small></h3><span class="dobra-resumo" id="ctMiniResumo"></span></summary><div class="mini-cols" id="ctMini"></div></details>
+          <details class="card dobra" data-dobra>
+            <summary><h3>Limite</h3><span class="dobra-resumo" id="ctLimiteResumo"></span></summary>
+            <label class="campo-rot"><span class="lbl">Limite do cartão</span><span class="cx boxed num"><span>R$</span><input type="text" id="inLimite" data-g="limite" data-t="money" inputmode="decimal" placeholder="opcional"></span></label>
+            <div class="ct-limite" id="ctLimite"></div>
+          </details>
+        </aside>
+      </div>
+    </section>
+
+    <section class="painel" id="painel-anuais" role="tabpanel" aria-labelledby="aba-anuais" hidden>
+      <header class="sec-head">
+        <div><h2>Gastos anuais</h2><p class="hint">Contas que vêm uma vez por ano, como IPVA e licenciamento. O valor é dividido pelos meses que faltam até o vencimento, então nada pesa de uma vez.</p></div>
+        <div class="total-box"><span class="eyebrow">Separar este mês</span><strong id="anTotal"></strong></div>
+      </header>
+      <div class="card">
+        <div class="tabela" id="listaAnuais"></div>
+        <div class="acoes-lista">
+          <button type="button" class="btn" data-add="anuais"><span data-icon="mais"></span>Adicionar gasto anual</button>
+          <div class="sugestoes" id="sugestoes"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="painel" id="painel-porquinhos" role="tabpanel" aria-labelledby="aba-porquinhos" hidden>
+      <header class="sec-head">
+        <div><h2>Porquinhos</h2><p class="hint">Dinheiro separado por objetivo: quitar uma dívida, a entrada do apartamento, a mobília. Diga quanto precisa, até quando e quanto guarda por mês. Se não chegar a tempo, o porquinho mostra quanto seria preciso.</p></div>
+        <div class="total-box"><span class="eyebrow">Por mês, somando todos</span><strong id="pqTotal"></strong></div>
+      </header>
+      <div class="grade grade-2">
+        <details class="card dobra" data-dobra>
+          <summary><h3>Quanto dá pra tirar sem pesar no bolso</h3><span class="dobra-resumo" id="capResumo"></span></summary>
+          <dl class="conta-dl" id="capacidade"></dl>
+        </details>
+        <details class="card dobra" data-dobra>
+          <summary><h3>E se eu quiser juntar…</h3><span class="dobra-resumo">simulador</span></summary>
+          <form class="sim" id="formSim" autocomplete="off">
+          <div class="form-grid">
+            <label class="campo-rot"><span class="lbl">Para quê</span><span class="cx boxed"><input type="text" id="simNome" value="Viagem de férias"></span></label>
+            <label class="campo-rot"><span class="lbl">Quanto</span><span class="cx boxed num"><span>R$</span><input type="text" id="simValor" inputmode="decimal" value="5.000,00"></span></label>
+            <label class="campo-rot"><span class="lbl">Em quantas vezes (meses)</span><span class="cx boxed num"><input type="text" id="simMeses" inputmode="numeric" value="10"><span class="suf">meses</span></span></label>
+          </div>
+          <output class="sim-res" id="simRes"></output>
+          <button class="btn btn-primary" type="submit"><span data-icon="mais"></span>Criar este porquinho</button>
+          </form>
+        </details>
+      </div>
+      <div class="porqs" id="listaPorq"></div>
+      <div><button type="button" class="btn" data-add="porquinhos"><span data-icon="mais"></span>Novo porquinho em branco</button></div>
+    </section>
+
+    <section class="painel" id="painel-besteiras" role="tabpanel" aria-labelledby="aba-besteiras" hidden>
+      <header class="sec-head">
+        <div><h2>Besteiras</h2><p class="hint">Os gastos pequenos que somem sem a gente ver: delivery, lanche, comprinhas. Anote aqui e acompanhe o teto do mês.</p></div>
+        <div class="total-box"><span class="eyebrow">Gasto neste mês</span><strong id="bsTotal"></strong></div>
+      </header>
+      <div class="grade grade-2">
+        <div class="card bs-teto">
+          <div class="teto-linha">
+            <label class="campo-rot"><span class="lbl">Teto do mês</span><span class="cx boxed num"><span>R$</span><input type="text" id="inTeto" data-g="teto" data-t="money" inputmode="decimal"></span></label>
+            <div id="bsStatus"></div>
+          </div>
+          <div class="meter grosso" id="bsMeter"><span></span></div>
+          <p class="hint" id="bsHint"></p>
+          <p class="bs-ano" id="bsAno"></p>
+        </div>
+        <form class="card form-besteira" id="formBest" autocomplete="off">
+          <h3>Anotar besteira</h3>
+          <div class="form-grid">
+            <label class="campo-rot"><span class="lbl">O que foi</span><span class="cx boxed"><input type="text" id="fbDesc" placeholder="Ex.: açaí, lanche, delivery"></span></label>
+            <label class="campo-rot"><span class="lbl">Quanto</span><span class="cx boxed num"><span>R$</span><input type="text" id="fbValor" inputmode="decimal" placeholder="0,00"></span></label>
+          </div>
+          <fieldset class="chips"><legend class="lbl">Tipo</legend><div class="chips-lista" id="fbCats"></div></fieldset>
+          <button class="btn btn-primary" type="submit"><span data-icon="mais"></span>Anotar</button>
+        </form>
+      </div>
+      <div class="grade grade-2">
+        <div class="card"><h3 id="bsListaTit">Anotadas neste mês</h3><ul class="gastos" id="listaBest"></ul></div>
+        <div class="grade-col">
+          <details class="card dobra" data-dobra><summary><h3>Por tipo</h3></summary><ul class="hbars" id="bsCat"></ul></details>
+          <details class="card dobra" data-dobra><summary><h3>Meses anteriores <small class="muted">(R$)</small></h3></summary><div id="bsHist"></div></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="painel" id="painel-relatorio" role="tabpanel" aria-labelledby="aba-relatorio" hidden>
+      <div class="card rel-ctrl">
+        <div><h2>Relatório</h2><p class="hint">Escolha as seções. Para PDF, clique em Imprimir e escolha "Salvar como PDF". No celular, use "Abrir em nova aba" e depois Compartilhar › Imprimir. O arquivo .html abre em qualquer navegador.</p></div>
+        <fieldset class="chips"><legend class="lbl">Seções incluídas</legend><div class="chips-lista" id="relSecoes"></div></fieldset>
+        <div class="rel-botoes">
+          <button type="button" class="btn btn-primary" id="btnImprimir"><span data-icon="impressora"></span>Imprimir ou salvar PDF</button>
+          <button type="button" class="btn" id="btnAbrirRel"><span data-icon="externo"></span>Abrir em nova aba</button>
+          <button type="button" class="btn" id="btnBaixarRel"><span data-icon="baixar"></span>Baixar relatório (.html)</button>
+        </div>
+      </div>
+      <article class="folha" id="relDoc"></article>
+    </section>
+
+    <section class="painel" id="painel-perfil" role="tabpanel" aria-labelledby="aba-perfil" hidden>
+      <header class="sec-head"><div><h2>Perfil</h2><p class="hint">Seus dados de uso, a conta vinculada e onde tudo fica guardado.</p></div></header>
+      <div class="grade grade-2">
+        <div class="card perfil-card">
+          <div class="perfil-topo"><span class="avatar grande" id="perfilAvatar">?</span><div><strong id="perfilNomeTxt">Sem nome ainda</strong><small class="muted" id="perfilDesde"></small></div></div>
+          <label class="campo-rot"><span class="lbl">Como quer ser chamado</span><span class="cx boxed"><input type="text" id="inNome" data-g="nome" maxlength="60" autocomplete="given-name"></span></label>
+          <label class="campo-rot"><span class="lbl">Salário líquido</span><span class="cx boxed num"><span>R$</span><input type="text" id="inSalarioPerfil" data-g="salario" data-t="money" inputmode="decimal"></span></label>
+          <label class="campo-rot"><span class="lbl">Margem para imprevistos (% do salário)</span><span class="cx boxed num"><input type="text" id="inMargem" data-g="margem" data-t="pct" inputmode="decimal"><span class="suf">%</span></span></label>
+          <label class="campo-rot"><span class="lbl">Tema</span><span class="cx boxed"><select id="inTema"><option value="auto">Automático (segue o aparelho)</option><option value="light">Claro</option><option value="dark">Escuro</option></select></span></label>
+        </div>
+        <div class="card">
+          <h3>Conta e armazenamento</h3>
+          <dl class="conta-dl perfil-dl" id="perfilConta"></dl>
+          <div class="perfil-acoes">
+            <button type="button" class="btn btn-sm" data-acao="exportar"><span data-icon="baixar"></span>Exportar backup</button>
+            <button type="button" class="btn btn-sm" data-acao="importar"><span data-icon="subir"></span>Importar backup</button>
+            <button type="button" class="btn btn-sm" data-acao="limpar"><span data-icon="cadeado"></span>Apagar dados deste aparelho</button>
+            <button type="button" class="btn btn-sm perigo" data-acao="recomecar"><span data-icon="reset"></span>Recomeçar do zero</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="wrap rodape">Aberto pelo link do Google, tudo fica salvo na sua planilha e aparece no celular e no PC. Aberto como arquivo, salva só neste navegador; use ⋯ › Exportar backup para levar a outro lugar.</footer>
+
+<nav class="nav-baixo" aria-label="Navegação principal">
+  <a href="#visao" data-nav="visao"><span data-icon="casa"></span><span>Início</span></a>
+  <a href="#contas" data-nav="contas"><span data-icon="lista"></span><span>Contas</span></a>
+  <button type="button" class="nav-anotar" data-anotar aria-label="Anotar um gasto"><span data-icon="mais"></span></button>
+  <a href="#porquinhos" data-nav="porquinhos"><span data-icon="porco"></span><span>Porquinhos</span></a>
+  <button type="button" id="btnMais" data-nav="mais" aria-haspopup="dialog"><span data-icon="pontos"></span><span>Mais</span></button>
+</nav>
+<button type="button" class="fab" data-anotar><span data-icon="mais"></span><span>Anotar</span></button>
+
+<dialog id="dlgMais" class="folha-baixo" aria-labelledby="maisTit">
+  <div class="dlg">
+    <h2 id="maisTit">Mais</h2>
+    <nav class="mais-lista" aria-label="Outras seções">
+      <a href="#cartao"><span data-icon="cartao"></span><span><b>Cartão de crédito</b><small>Parcelas e fatura do mês</small></span></a>
+      <a href="#anuais"><span data-icon="calendario"></span><span><b>Gastos do ano</b><small>IPVA, licenciamento, IPTU</small></span></a>
+      <a href="#besteiras"><span data-icon="cafe"></span><span><b>Besteiras</b><small>Delivery, lanche, comprinhas</small></span></a>
+      <a href="#relatorio"><span data-icon="impressora"></span><span><b>Relatório</b><small>PDF do mês</small></span></a>
+      <a href="#perfil"><span data-icon="usuario"></span><span><b>Perfil</b><small>Nome, conta Google e backup</small></span></a>
+    </nav>
+    <div class="dlg-acoes"><button type="button" class="btn" data-fechar-folha>Fechar</button></div>
+  </div>
+</dialog>
+
+<dialog id="dlgAnotar" class="folha-baixo" aria-labelledby="anotarTit">
+  <div class="dlg">
+    <div class="anotar-topo">
+      <h2 id="anotarTit">Anotar</h2>
+      <div class="segmento" role="group" aria-label="O que anotar">
+        <button type="button" data-tipo-anotar="besteira" aria-pressed="true">Besteira</button>
+        <button type="button" data-tipo-anotar="cartao" aria-pressed="false">Cartão</button>
+        <button type="button" data-tipo-anotar="conta" aria-pressed="false">Conta do mês</button>
+      </div>
+    </div>
+    <form id="formAnotar" class="anotar-form" autocomplete="off">
+      <label class="campo-rot"><span class="lbl" id="anValorRot">Quanto foi</span><span class="cx boxed num grande"><span>R$</span><input type="text" id="anValor" inputmode="decimal" placeholder="0,00"></span></label>
+      <label class="campo-rot"><span class="lbl" id="anNomeRot">O que foi</span><span class="cx boxed"><input type="text" id="anNome" maxlength="120" placeholder="Ex.: açaí, lanche, delivery"></span></label>
+      <fieldset class="chips" data-so="besteira"><legend class="lbl">Tipo</legend><div class="chips-lista" id="anCats"></div></fieldset>
+      <div class="form-grid" data-so="cartao" hidden>
+        <label class="campo-rot"><span class="lbl">Parcela atual</span><span class="cx boxed num"><input type="text" id="anParcAtual" inputmode="numeric" placeholder="1"></span></label>
+        <label class="campo-rot"><span class="lbl">De quantas</span><span class="cx boxed num"><input type="text" id="anParcTotal" inputmode="numeric" placeholder="todo mês"></span></label>
+      </div>
+      <label class="campo-rot" data-so="conta" hidden><span class="lbl">Categoria</span><span class="cx boxed"><select id="anCategoria"></select></span></label>
+      <p class="erro-senha" id="anErro" role="alert"></p>
+      <div class="dlg-acoes">
+        <button type="button" class="btn" data-fechar-folha>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="anOk">Anotar besteira</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<div class="tip" id="tip" role="tooltip" aria-hidden="true"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<dialog id="dlgFechar" aria-labelledby="dfTit">
+  <form method="dialog" class="dlg">
+    <h2 id="dfTit">Fechar o mês</h2>
+    <p class="hint">Faça isso quando o mês terminar e as contas estiverem pagas. O que vai acontecer:</p>
+    <ul class="dlg-lista" id="dfLista"></ul>
+    <label class="check" id="dfPorqRot"><input type="checkbox" id="dfPorq" checked><span>Guardei o valor dos porquinhos este mês (somar em cada um)</span></label>
+    <div class="dlg-acoes">
+      <button class="btn" value="cancel" type="submit">Cancelar</button>
+      <button class="btn btn-primary" value="ok" type="submit" id="dfOk">Fechar o mês</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgConfirma" aria-labelledby="dcTit">
+  <form method="dialog" class="dlg">
+    <h2 id="dcTit">Confirmar</h2>
+    <p id="dcTxt"></p>
+    <div class="dlg-acoes">
+      <button class="btn" value="cancel" type="submit" id="dcNao">Cancelar</button>
+      <button class="btn btn-primary" value="ok" type="submit" id="dcOk">Confirmar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgSenha" aria-labelledby="dsTit">
+  <form method="dialog" class="dlg" id="formSenha" autocomplete="off">
+    <h2 id="dsTit">Senha do backup</h2>
+    <p id="dsTxt"></p>
+    <label class="campo-rot"><span class="lbl">Senha</span><span class="cx boxed"><input type="password" id="dsSenha" autocomplete="new-password" spellcheck="false"></span></label>
+    <label class="campo-rot" id="dsConfRot"><span class="lbl">Repita a senha</span><span class="cx boxed"><input type="password" id="dsConf" autocomplete="new-password" spellcheck="false"></span></label>
+    <p class="erro-senha" id="dsErro" role="alert"></p>
+    <div class="dlg-acoes">
+      <button class="btn" value="cancel" type="submit">Cancelar</button>
+      <button class="btn" value="alt" type="submit" id="dsAlt">Sem senha</button>
+      <button class="btn btn-primary" value="ok" type="submit" id="dsOk">Continuar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgBoasVindas" class="boas-vindas" aria-labelledby="bvTit">
+  <form method="dialog" class="dlg" id="formBoasVindas" autocomplete="off">
+    <div class="bv-mascote" id="bvMascote"></div>
+    <h2 id="bvTit">Oi! Eu sou o Tostão</h2>
+    <p class="hint">Vou te ajudar a organizar o mês. Para começar, só preciso de duas coisas. O resto você preenche aos poucos, quando quiser.</p>
+    <label class="campo-rot"><span class="lbl">Como você quer ser chamado?</span><span class="cx boxed"><input type="text" id="bvNome" maxlength="60" autocomplete="given-name" placeholder="Seu nome"></span></label>
+    <label class="campo-rot"><span class="lbl">Quanto você recebe por mês, já com descontos?</span><span class="cx boxed num"><span>R$</span><input type="text" id="bvSalario" inputmode="decimal" placeholder="0,00"></span></label>
+    <p class="erro-senha" id="bvErro" role="alert"></p>
+    <div class="dlg-acoes">
+      <button class="btn" type="button" id="bvImportar">Tenho um backup</button>
+      <button class="btn btn-primary" value="ok" type="submit" id="bvOk">Começar</button>
+    </div>
+  </form>
+</dialog>
