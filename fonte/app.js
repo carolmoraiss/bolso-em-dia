@@ -89,6 +89,20 @@ const ICON = {
 const STATUS = { ok:{ rotulo:'Cabe no bolso', icone:ICON.check }, warn:{ rotulo:'Apertado', icone:ICON.alerta }, bad:{ rotulo:'Não fecha', icone:ICON.x }, neutro:{ rotulo:'', icone:'' } };
 function pill(st, txt){ return '<span class="pill ' + st + '">' + ((STATUS[st] && STATUS[st].icone) || '') + txt + '</span>'; }
 
+const SITE_LOCAL = 'https://carolmoraiss.github.io/bolso-em-dia/';
+function linkGoogle(txt){
+  let u;
+  try { u = new URL(String(txt || '').trim()); } catch { return ''; }
+  if (u.protocol !== 'https:' || u.hostname !== 'script.google.com' || u.username || u.password || u.port) return '';
+  return /^\/(?:a\/macros\/[A-Za-z0-9.-]+\/|macros\/)(?:u\/\d{1,2}\/)?s\/[A-Za-z0-9_-]{20,120}\/exec$/.test(u.pathname) ? u.origin + u.pathname : '';
+}
+function temDados(s){ return Boolean(s.salario || s.contas.length || s.cartao.itens.length || s.anuais.length || s.porquinhos.length || s.besteira.gastos.length); }
+function resumoDados(s){
+  const qtd = (k, um, varios) => `${k} ${k === 1 ? um : varios}`;
+  return [s.salario ? `salário de ${brl(s.salario)}` : 'sem salário', qtd(s.contas.length, 'conta', 'contas'), qtd(s.cartao.itens.length, 'compra no cartão', 'compras no cartão'),
+    qtd(s.porquinhos.length, 'porquinho', 'porquinhos'), `mês de ${rotuloMesLongo(s.mesRef)}`].join(', ');
+}
+
 const DADOS_ATUAL = 5;
 const FGTS_JUROS_MES = Math.pow(1.03, 1 / 12) - 1, FGTS_TR_PADRAO = 0.15;
 function migrar(s){
@@ -161,7 +175,10 @@ let timerSalvar = null, semGravar = false;
 function gravar(){ if (!semGravar) local.gravar(CHAVE, JSON.stringify(S)); }
 function salvar(){ clearTimeout(timerSalvar); timerSalvar = setTimeout(gravar, 250); marcarParaNuvem(); }
 function carregarPrefs(){
-  try { const p = JSON.parse(local.ler(CHAVE_PREFS) || '{}'); return { secoes:(p && p.secoes) || {}, passosOcultos:Boolean(p && p.passosOcultos), ultimoBackup:(p && p.ultimoBackup) || '' }; } catch { return { secoes:{}, passosOcultos:false, ultimoBackup:'' }; }
+  try {
+    const p = JSON.parse(local.ler(CHAVE_PREFS) || '{}') || {};
+    return { secoes:p.secoes || {}, passosOcultos:Boolean(p.passosOcultos), ultimoBackup:p.ultimoBackup || '', google:linkGoogle(p.google), modo:p.modo === 'google' ? 'google' : 'local' };
+  } catch { return { secoes:{}, passosOcultos:false, ultimoBackup:'', google:'', modo:'local' }; }
 }
 function salvarPrefs(){ local.gravar(CHAVE_PREFS, JSON.stringify(PREFS)); }
 
@@ -1343,7 +1360,7 @@ function guardarPendente(v){ local.gravar(CHAVE_PENDENTE, v ? '1' : ''); }
 
 function iniciarNuvem(){
   sync.iniciando = false;
-  if (!NUVEM) { statusNuvem('local', 'Salvo só neste navegador'); return; }
+  if (!NUVEM) { statusNuvem('local', 'Salvo só neste navegador · trocar'); $('#syncStatus').title = 'Escolher onde guardar os dados'; return; }
   sync.versao = +local.ler(CHAVE_VERSAO) || 0;
   sync.pendente = local.ler(CHAVE_PENDENTE) === '1';
   statusNuvem('salvando', 'Conectando ao Google…');
@@ -1424,7 +1441,7 @@ document.addEventListener('visibilitychange', () => {
   else if (!sync.pendente && !sync.emVoo) buscarNuvem(false);
 });
 $('#syncStatus').addEventListener('click', () => {
-  if (!NUVEM) { toast('Este arquivo salva só neste navegador. Para salvar no Google e abrir no celular, use o link do Apps Script.'); return; }
+  if (!NUVEM) { abrirOnde(); return; }
   if (sync.pendente) enviar();
   else if (!sync.emVoo) { statusNuvem('salvando', 'Buscando no Google…'); buscarNuvem(false); }
 });
@@ -1541,11 +1558,54 @@ function importarArquivo(f){
 }
 function aplicarImport(o){
   if (!o || typeof o.salario !== 'number' || !Array.isArray(o.contas)) { toast('Esse arquivo não é um backup do Bolso em Dia.'); return; }
-  const foto = JSON.stringify(S);
   let s = normalizar(o);
   if ((s.dados || 1) < DADOS_ATUAL) s = migrar(s);
-  S = s; render(true);
-  toast('Backup carregado.', 'Desfazer', () => { S = normalizar(JSON.parse(foto)); render(true); });
+  const trocar = () => {
+    const foto = JSON.stringify(S);
+    S = s; render(true);
+    toast(NUVEM ? 'Backup carregado e enviado para a planilha.' : 'Backup carregado.', 'Desfazer', () => { S = normalizar(JSON.parse(foto)); render(true); });
+  };
+  if (!temDados(S)) { trocar(); return; }
+  confirmar('Trocar pelos dados do arquivo?', `${NUVEM ? 'Na planilha' : 'Neste aparelho'}, agora: ${resumoDados(S)}.\n\nNo arquivo: ${resumoDados(s)}.\n\nO que está ${NUVEM ? 'na planilha' : 'aqui'} será substituído. Dá para desfazer logo depois.`, 'Usar o arquivo', 'Manter os atuais')
+    .then((ok) => { if (ok) trocar(); });
+}
+
+let ondeEscolha = 'local';
+function renderAvisoOnde(){
+  const el = $('#avisoOnde'), marca = NUVEM || PREFS.modo !== 'google' || !PREFS.google ? '' : PREFS.google;
+  if (el.getAttribute('data-marca') === marca) return;
+  el.setAttribute('data-marca', marca);
+  el.innerHTML = marca ? `<div class="aviso">${ICON.planilha}<p>Você escolheu guardar os dados na sua planilha do Google. O que mudar aqui fica só neste navegador.</p>` +
+    `<a class="btn btn-sm btn-primary" href="${esc(marca)}" target="_blank" rel="noopener noreferrer">Abrir no Google</a><button type="button" class="btn btn-sm" data-acao="onde">Trocar</button></div>` : '';
+}
+function atualizarOnde(){
+  const google = ondeEscolha === 'google', mudar = NUVEM ? !google : google, ir = $('#ondeIr');
+  const link = NUVEM ? SITE_LOCAL : linkGoogle($('#ondeLink').value);
+  $('#ondeGoogle').hidden = NUVEM || !google;
+  $('#ondeLevarRot').hidden = !mudar || !temDados(S);
+  $('#ondeLevarTxt').textContent = NUVEM ? 'Levar os dados da planilha. Eu baixo um arquivo e, na outra versão, você toca em Tenho um backup.'
+    : 'Levar os dados deste aparelho. Eu baixo um arquivo e, no Google, você usa ⋯ › Importar backup.';
+  ir.hidden = !mudar; $('#ondeOk').hidden = mudar;
+  ir.textContent = NUVEM ? 'Abrir a versão sem conta' : 'Abrir no Google';
+  ir.href = link || '#';
+  ir.setAttribute('aria-disabled', link ? 'false' : 'true');
+  $('#ondeOk').textContent = NUVEM ? 'Continuar no Google' : 'Continuar neste aparelho';
+}
+function abrirOnde(preferir){
+  const d = $('#dlgOnde');
+  if (typeof d.showModal !== 'function' || d.open) return;
+  ondeEscolha = preferir || (NUVEM ? 'google' : PREFS.modo);
+  $('#ondeLink').value = PREFS.google || '';
+  $('#ondeLevar').checked = true;
+  $('#ondeErro').textContent = '';
+  $('#ondeAgora').textContent = NUVEM ? `Agora: na sua planilha do Google${sync.conta ? `, conta ${sync.conta}` : ''}.` : 'Agora: só neste navegador, neste aparelho.';
+  $$('#formOnde input[name="onde"]').forEach((r) => { r.checked = r.value === ondeEscolha; });
+  atualizarOnde();
+  d.returnValue = ''; d.showModal();
+  esperarResposta(d).then((v) => {
+    if (v !== 'ok' || NUVEM) return;
+    PREFS.modo = 'local'; salvarPrefs(); renderAvisoOnde();
+  });
 }
 function pedirLimpeza(){
   if (NUVEM && (sync.pendente || sync.emVoo)) { toast('Espere aparecer "Salvo no Google" antes de apagar os dados deste aparelho.'); return; }
@@ -1683,6 +1743,7 @@ document.addEventListener('click', (e) => {
     else if (a === 'exportar') exportarBackup();
     else if (a === 'limpar') pedirLimpeza();
     else if (a === 'importar') $('#arquivoBackup').click();
+    else if (a === 'onde') abrirOnde();
     else if (a === 'recomecar') confirmar('Recomeçar do zero?', NUVEM ? 'Apaga tudo o que você preencheu, inclusive na planilha do Google, e começa vazio pela tela de boas-vindas. Se quiser guardar, exporte um backup antes.' : 'Apaga tudo o que você preencheu neste navegador e começa vazio pela tela de boas-vindas. Se quiser guardar, exporte um backup antes.', 'Apagar e recomeçar').then((ok) => {
       if (ok) { comDesfazer('Tudo recomeçado.', () => { S = estadoInicial(); }); PREFS.passosOcultos = false; salvarPrefs(); abrirBoasVindas(); }
     });
@@ -1863,6 +1924,18 @@ function concluirBoasVindas(resposta){
   if (resposta === 'ok') { toast(`Tudo pronto, ${S.perfil.nome}. Agora é só ir preenchendo.`); mov.destacar($('.passos')); }
 }
 $('#bvImportar').addEventListener('click', () => { $('#dlgBoasVindas').close(); $('#arquivoBackup').click(); });
+$('#bvGoogle').addEventListener('click', () => { $('#dlgBoasVindas').close(); abrirOnde('google'); });
+$('#formOnde').addEventListener('change', (e) => { if (e.target.name === 'onde') { ondeEscolha = e.target.value; $('#ondeErro').textContent = ''; atualizarOnde(); } });
+$('#ondeLink').addEventListener('input', () => { $('#ondeErro').textContent = ''; atualizarOnde(); });
+$('#ondeIr').addEventListener('click', (e) => {
+  const link = NUVEM ? SITE_LOCAL : linkGoogle($('#ondeLink').value);
+  if (!link) { e.preventDefault(); $('#ondeErro').textContent = 'Cole o link do seu Bolso em Dia no Google, aquele que termina em /exec.'; $('#ondeLink').focus(); return; }
+  const levar = !$('#ondeLevarRot').hidden && $('#ondeLevar').checked;
+  if (!NUVEM) { PREFS.google = link; PREFS.modo = 'google'; salvarPrefs(); renderAvisoOnde(); }
+  if (levar) { baixar(`bolso-em-dia-${NUVEM ? 'para-este-aparelho' : 'para-o-google'}-${hojeISO()}.json`, JSON.stringify(S, null, 2), 'application/json'); marcarBackup(); }
+  $('#dlgOnde').close();
+  toast(levar ? `Baixei o arquivo com os seus dados. ${NUVEM ? 'Na página que abriu, toque em Tenho um backup' : 'No Google, use ⋯ › Importar backup'} e escolha esse arquivo. Depois, pode apagá-lo.` : 'Abri em outra aba.');
+});
 $('#inTema').addEventListener('change', (e) => {
   tema = ['auto', 'light', 'dark'].includes(e.target.value) ? e.target.value : 'auto';
   local.gravar(CHAVE_TEMA, tema);
@@ -1968,7 +2041,9 @@ if (window.ResizeObserver) {
   new ResizeObserver(moverIndicador).observe($('.abas'));
 } else window.addEventListener('resize', () => { desenharGrafico(); ajustarRotulosSeg(seg); });
 iniciarNuvem();
-if (!NUVEM && primeiroAcesso) setTimeout(abrirBoasVindas, 450);
+$('#bvGoogleP').hidden = NUVEM;
+renderAvisoOnde();
+if (!NUVEM && primeiroAcesso && PREFS.modo !== 'google') setTimeout(abrirBoasVindas, 450);
 window.addEventListener('pagehide', () => { gravar(); if (NUVEM && sync.pendente) enviar(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) gravar(); });
 })();
