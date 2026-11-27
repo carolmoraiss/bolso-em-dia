@@ -4,7 +4,7 @@ const ABAS = { contas: 'Contas', cartao: 'Cartão', anuais: 'Anuais', porquinhos
 const CATEGORIAS = { casa: 'Casa e contas', transporte: 'Transporte', alimentacao: 'Alimentação', saude: 'Saúde', educacao: 'Educação', assinaturas: 'Assinaturas', cuidados: 'Cuidados pessoais', emprestimos: 'Empréstimos', outros: 'Outros' };
 const CAT_BESTEIRA = { delivery: 'Delivery', lanche: 'Lanche e café', online: 'Compras online', lazer: 'Lazer', outros: 'Outros' };
 const NOMES_MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-const TEXTO = '@', DINHEIRO = 'R$ #,##0.00', INTEIRO = '0', PORCENTO = '0.0';
+const TEXTO = '@', DINHEIRO = 'R$ #,##0.00', INTEIRO = '0', PORCENTO = '0.0', TAXA = '0.0000';
 
 const COLUNAS = {
   contas: [['ID', TEXTO, 90], ['Conta', TEXTO, 200], ['Categoria', TEXTO, 150], ['Valor por mês', DINHEIRO, 120], ['Parcelas restantes', INTEIRO, 140]],
@@ -25,7 +25,14 @@ const CONFIG = [
   ['limiteCartao', 'Limite do cartão (opcional).', DINHEIRO],
   ['dados', 'Versão do pacote de dados da página.', INTEIRO],
   ['nome', 'Seu nome, como a página te chama.', TEXTO],
-  ['criadoEm', 'Quando você começou a usar (AAAA-MM-DD).', TEXTO]
+  ['criadoEm', 'Quando você começou a usar (AAAA-MM-DD).', TEXTO],
+  ['fgtsAtivo', 'Acompanha o FGTS (sim ou não).', TEXTO],
+  ['fgtsSaldo', 'Saldo do FGTS, atualizado a cada mês fechado.', DINHEIRO],
+  ['fgtsBruto', 'Salário bruto, base do depósito do FGTS.', DINHEIRO],
+  ['fgtsDeposito', 'Depósito do FGTS, em % do salário bruto.', PORCENTO],
+  ['fgtsTR', 'TR usada no rendimento do FGTS, em % ao mês.', TAXA],
+  ['fgts13', 'Recebe 13º salário (sim ou não).', TEXTO],
+  ['fgtsFerias', 'Mês das férias (1 a 12), para o adicional de 1/3.', INTEIRO]
 ];
 
 function doGet() {
@@ -53,11 +60,14 @@ function salvarDados(json, versaoBase) {
     if (typeof json !== 'string' || json.length > LIMITE_JSON) throw new Error('Os dados enviados são grandes demais.');
     const s = JSON.parse(json), quando = agora_();
     if (!s || typeof s !== 'object' || !Array.isArray(s.contas)) throw new Error('Formato de dados inválido.');
+    const fg = s.fgts && typeof s.fgts === 'object' ? s.fgts : {};
     escreverTudo_(ss, s);
     escreverConfig_(ss, {
       versao: atual + 1, atualizadoEm: quando, mesRef: mesTxt_(s.mesRef), salario: numero_(s.salario), margem: numero_(s.margem),
       tetoBesteira: numero_((s.besteira || {}).teto), limiteCartao: numero_((s.cartao || {}).limite), dados: numero_(s.dados),
-      nome: texto_((s.perfil || {}).nome, 60), criadoEm: dataTxt_((s.perfil || {}).criadoEm)
+      nome: texto_((s.perfil || {}).nome, 60), criadoEm: dataTxt_((s.perfil || {}).criadoEm),
+      fgtsAtivo: fg.ativo === true ? 'sim' : 'não', fgtsSaldo: numero_(fg.saldo), fgtsBruto: numero_(fg.bruto), fgtsDeposito: numero_(fg.aliquota),
+      fgtsTR: numero_(fg.tr), fgts13: fg.decimo === false ? 'não' : 'sim', fgtsFerias: numero_(fg.ferias)
     });
     limparAbaPadrao_(ss);
     return { ok: true, versao: atual + 1, atualizadoEm: quando, planilhaUrl: ss.getUrl() };
@@ -87,6 +97,10 @@ function montarEstado_(ss, cfg) {
     mesRef: txt_(cfg.mesRef, 'yyyy-MM'),
     salario: num_(cfg.salario) || 0,
     margem: num_(cfg.margem) == null ? 10 : num_(cfg.margem),
+    fgts: {
+      ativo: txt_(cfg.fgtsAtivo).toLowerCase() === 'sim', saldo: num_(cfg.fgtsSaldo) || 0, bruto: num_(cfg.fgtsBruto) || 0, aliquota: num_(cfg.fgtsDeposito),
+      tr: num_(cfg.fgtsTR), decimo: txt_(cfg.fgts13).toLowerCase() !== 'não', ferias: num_(cfg.fgtsFerias)
+    },
     contas: ler('contas').map((r) => {
       return { id: txt_(r[0]), nome: txt_(r[1]), categoria: chave_(r[2], CATEGORIAS), valor: num_(r[3]) || 0, parcelas: num_(r[4]) };
     }),

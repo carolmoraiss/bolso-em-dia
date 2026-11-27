@@ -74,6 +74,7 @@
       <button type="button" class="aba" role="tab" id="aba-anuais" data-aba="anuais" aria-controls="painel-anuais">Anuais <span class="cont" data-cont="anuais"></span></button>
       <button type="button" class="aba" role="tab" id="aba-porquinhos" data-aba="porquinhos" aria-controls="painel-porquinhos">Porquinhos <span class="cont" data-cont="porquinhos"></span></button>
       <button type="button" class="aba" role="tab" id="aba-besteiras" data-aba="besteiras" aria-controls="painel-besteiras">Besteiras <span class="cont" data-cont="besteiras"></span></button>
+      <button type="button" class="aba" role="tab" id="aba-fgts" data-aba="fgts" aria-controls="painel-fgts">FGTS</button>
       <button type="button" class="aba" role="tab" id="aba-relatorio" data-aba="relatorio" aria-controls="painel-relatorio">Relatório</button>
       <button type="button" class="aba" role="tab" id="aba-perfil" data-aba="perfil" aria-controls="painel-perfil">Perfil</button>
       <span class="abas-indicador" aria-hidden="true"></span>
@@ -237,6 +238,40 @@
       </div>
     </section>
 
+    <section class="painel" id="painel-fgts" role="tabpanel" aria-labelledby="aba-fgts" hidden>
+      <header class="sec-head">
+        <div><h2>FGTS</h2><p class="hint">Quem tem carteira assinada recebe da empresa, todo mês, um depósito de 8% do salário bruto. O saldo rende 3% ao ano mais a TR, e tudo é atualizado quando você fecha o mês.</p></div>
+        <div class="total-box"><span class="eyebrow">Saldo hoje</span><strong id="fgSaldoTopo"></strong></div>
+      </header>
+      <div class="card fg-campos">
+        <label class="check"><input type="checkbox" id="inFgAtivo" data-g="fgAtivo"><span>Tenho carteira assinada e quero acompanhar o meu FGTS</span></label>
+        <p class="hint" id="fgVazio">Ligue a opção acima para informar o saldo e o salário bruto. Com isso, eu calculo o depósito e o rendimento de cada mês e atualizo o saldo sempre que você fechar o mês.</p>
+        <div class="form-grid" id="fgDados">
+          <label class="campo-rot"><span class="lbl">Saldo atual</span><span class="cx boxed num"><span>R$</span><input type="text" id="inFgSaldo" data-g="fgSaldo" data-t="money" inputmode="decimal" placeholder="0,00"></span></label>
+          <label class="campo-rot"><span class="lbl">Salário bruto</span><span class="cx boxed num"><span>R$</span><input type="text" id="inFgBruto" data-g="fgBruto" data-t="money" inputmode="decimal" placeholder="0,00"></span></label>
+          <label class="campo-rot"><span class="lbl">Depósito</span><span class="cx boxed num"><input type="text" id="inFgAliq" data-g="fgAliq" data-t="pct" inputmode="decimal"><span class="suf">% do bruto</span></span></label>
+          <label class="campo-rot"><span class="lbl">TR do mês</span><span class="cx boxed num"><input type="text" id="inFgTR" data-g="fgTR" data-t="taxa" inputmode="decimal"><span class="suf">% ao mês</span></span></label>
+          <label class="campo-rot"><span class="lbl">Mês das férias</span><span class="cx boxed"><select id="inFgFerias" data-g="fgFerias" data-t="mes"></select></span></label>
+          <label class="check"><input type="checkbox" id="inFg13" data-g="fg13"><span>Recebo 13º salário</span></label>
+        </div>
+      </div>
+      <div class="grade grade-2" id="fgResultado">
+        <div class="card">
+          <h3>Este mês</h3>
+          <p class="hint" id="fgBaseAviso">Sem o salário bruto, o cálculo usa o líquido, e o depósito real tende a ser maior.</p>
+          <dl class="conta-dl" id="fgMes"></dl>
+        </div>
+        <div class="card">
+          <div class="fg-proj-topo"><h3>Próximos 3 anos</h3><strong id="fgProjResumo"></strong></div>
+          <div class="fg-graf" id="fgGraf"></div>
+          <div class="fg-marcos" id="fgMarcos"></div>
+          <div class="fg-anos" id="fgAnos"></div>
+          <p class="hint">Estimativa com o salário bruto de hoje, sem aumentos nem saques. Passe o dedo ou o mouse no gráfico para ver cada mês.</p>
+        </div>
+      </div>
+      <p class="hint">O saldo atual aparece no app FGTS, da Caixa. A TR muda todo mês e ficou perto de 0,15% ao mês em 2026; troque pelo valor do mês se quiser mais precisão. O depósito é de 8% para quem tem carteira assinada e de 2% para jovem aprendiz. Todo ano a Caixa também distribui parte do lucro do fundo, e desde 2024 o STF garante que o FGTS renda pelo menos a inflação (IPCA). Como essas partes não entram na conta, o saldo real tende a ser um pouco maior. Se você sacar (no saque-aniversário, por exemplo), é só corrigir o saldo.</p>
+    </section>
+
     <section class="painel" id="painel-relatorio" role="tabpanel" aria-labelledby="aba-relatorio" hidden>
       <div class="card rel-ctrl">
         <div><h2>Relatório</h2><p class="hint">Escolha as seções. Para PDF, clique em Imprimir e escolha "Salvar como PDF". No celular, use "Abrir em nova aba" e depois Compartilhar › Imprimir. O arquivo .html abre em qualquer navegador.</p></div>
@@ -293,6 +328,7 @@
       <a href="#cartao"><span data-icon="cartao"></span><span><b>Cartão de crédito</b><small>Parcelas e fatura do mês</small></span></a>
       <a href="#anuais"><span data-icon="calendario"></span><span><b>Gastos do ano</b><small>IPVA, licenciamento, IPTU</small></span></a>
       <a href="#besteiras"><span data-icon="cafe"></span><span><b>Besteiras</b><small>Delivery, lanche, comprinhas</small></span></a>
+      <a href="#fgts"><span data-icon="banco"></span><span><b>FGTS</b><small>Saldo, depósitos e rendimento</small></span></a>
       <a href="#relatorio"><span data-icon="impressora"></span><span><b>Relatório</b><small>PDF do mês</small></span></a>
       <a href="#perfil"><span data-icon="usuario"></span><span><b>Perfil</b><small>Nome, conta Google e backup</small></span></a>
     </nav>
