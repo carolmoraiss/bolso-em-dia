@@ -1,0 +1,8 @@
+{
+  "extends": "stylelint-config-standard",
+  "rules": {
+    "media-feature-range-notation": ["prefix", { "message": "Use min-/max-width: o Safari anterior ao 16.4 (macOS 13.2, iPhones antigos) ignora a sintaxe de intervalo" }],
+    "no-descending-specificity": null,
+    "property-no-vendor-prefix": [true, { "ignoreProperties": ["-webkit-text-size-adjust"] }]
+  }
+}
