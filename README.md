@@ -63,6 +63,8 @@ Há três jeitos, todos com as mesmas telas. A diferença é onde os dados ficam
 | Precisa de conta | não | não | conta Google |
 | Instalação | nenhuma | nenhuma | uma vez, uns 10 minutos |
 
+Para escolher ou trocar, use o botão **Onde salvar**, que fica embaixo do nome **Bolso em Dia** no topo, em **⋯ › Onde salvar** e na aba **Perfil**. Ele mostra as duas opções, "Neste aparelho" ou "Na minha planilha do Google", e leva os dados de um lugar para o outro (veja [Trocar entre este aparelho e o Google](#trocar-entre-este-aparelho-e-o-google)).
+
 No primeiro acesso, o Tostão pergunta só o seu nome e o salário. Depois disso, o guia **Primeiros passos** mostra o que falta preencher (contas, cartão, gastos do ano, um porquinho e o teto de besteiras) e some quando tudo está pronto. A aba **Perfil** mostra o nome, desde quando você usa, a conta Google vinculada e onde os dados estão guardados.
 
 ### Pelo link (o mais fácil)
@@ -115,9 +117,15 @@ Para publicar uma versão nova mantendo o mesmo link, rode `./atualizar.sh`.
 
 Para atualizar depois: cole os arquivos novos nos mesmos lugares e vá em **Implantar › Gerenciar implantações › lápis › Versão: Nova versão › Implantar**. O link continua o mesmo.
 
-#### Levar os dados para o Google
+### Trocar entre este aparelho e o Google
 
-No link do GitHub Pages ou no arquivo, use **⋯ › Exportar backup**. No link do Google, use **⋯ › Importar backup**, ou **Tenho um backup** na tela de boas-vindas.
+A página do link e o arquivo guardam os dados no navegador. A versão do Google guarda na planilha. Uma não grava direto na outra, porque isso exigiria um login Google próprio na página. O botão **Onde salvar** faz a ponte:
+
+- **Do aparelho para o Google:** escolha **Na minha planilha do Google** e cole o link do seu Bolso em Dia no Google (o que termina em `/exec`). Com **Levar os dados deste aparelho** marcado, a página baixa um arquivo com os seus dados e abre o Google em outra aba. Lá, use **⋯ › Importar backup** e escolha esse arquivo. Depois disso, a página do link lembra da escolha e mostra um aviso com o botão **Abrir no Google**.
+- **Do Google para o aparelho:** na versão do Google, escolha **Neste aparelho**. A página baixa um arquivo e abre a versão sem conta, onde você toca em **Tenho um backup**.
+- **Quem já usa pelo Google** e abre o link pela primeira vez pode tocar em **Já uso o Bolso em Dia pelo Google**, na tela de boas-vindas.
+
+Antes de substituir qualquer coisa, a importação mostra o que existe em cada lado (salário, quantidade de contas, compras no cartão, porquinhos e mês de referência) e pergunta qual manter. Logo depois, ainda dá para desfazer. O arquivo baixado não tem senha, então apague-o depois de importar.
 
 ## Como os dados são salvos no Google
 
