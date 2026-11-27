@@ -27,6 +27,7 @@
           <p class="menu-conta" id="menuConta" hidden></p>
           <a class="menu-item" id="linkPlanilha" href="#" target="_blank" rel="noopener noreferrer" hidden><span data-icon="planilha"></span>Abrir planilha no Google</a>
           <button type="button" class="menu-item" data-acao="relatorio"><span data-icon="impressora"></span>Gerar relatório</button>
+          <button type="button" class="menu-item" data-acao="onde"><span data-icon="planilha"></span>Onde salvar</button>
           <button type="button" class="menu-item" data-acao="exportar"><span data-icon="baixar"></span>Exportar backup</button>
           <button type="button" class="menu-item" data-acao="importar"><span data-icon="subir"></span>Importar backup</button>
           <hr>
@@ -65,6 +66,7 @@
 
   <div class="wrap aviso-exemplos" id="avisoExemplos"></div>
   <div class="wrap aviso-mes" id="avisoMes"></div>
+  <div class="wrap aviso-onde" id="avisoOnde"></div>
 
   <nav class="wrap abas-nav" aria-label="Seções">
     <div class="abas" role="tablist">
@@ -299,6 +301,7 @@
           <h3>Conta e armazenamento</h3>
           <dl class="conta-dl perfil-dl" id="perfilConta"></dl>
           <div class="perfil-acoes">
+            <button type="button" class="btn btn-sm btn-primary" data-acao="onde"><span data-icon="planilha"></span>Onde salvar</button>
             <button type="button" class="btn btn-sm" data-acao="exportar"><span data-icon="baixar"></span>Exportar backup</button>
             <button type="button" class="btn btn-sm" data-acao="importar"><span data-icon="subir"></span>Importar backup</button>
             <button type="button" class="btn btn-sm" data-acao="limpar"><span data-icon="cadeado"></span>Apagar dados deste aparelho</button>
@@ -383,7 +386,7 @@
 <dialog id="dlgConfirma" aria-labelledby="dcTit">
   <form method="dialog" class="dlg">
     <h2 id="dcTit">Confirmar</h2>
-    <p id="dcTxt"></p>
+    <p class="quebra" id="dcTxt"></p>
     <div class="dlg-acoes">
       <button class="btn" value="cancel" type="submit" id="dcNao">Cancelar</button>
       <button class="btn btn-primary" value="ok" type="submit" id="dcOk">Confirmar</button>
@@ -417,6 +420,29 @@
     <div class="dlg-acoes">
       <button class="btn" type="button" id="bvImportar">Tenho um backup</button>
       <button class="btn btn-primary" value="ok" type="submit" id="bvOk">Começar</button>
+    </div>
+    <p class="bv-google" id="bvGoogleP"><button type="button" class="btn-link" id="bvGoogle">Já uso o Bolso em Dia pelo Google</button></p>
+  </form>
+</dialog>
+
+<dialog id="dlgOnde" aria-labelledby="ondeTit">
+  <form method="dialog" class="dlg" id="formOnde" autocomplete="off">
+    <h2 id="ondeTit">Onde guardar seus dados</h2>
+    <p class="hint" id="ondeAgora"></p>
+    <div class="onde-opcoes" role="radiogroup" aria-label="Onde guardar">
+      <label class="onde-op"><input type="radio" name="onde" value="local"><span><b>Neste aparelho</b><small>Sem conta. Os dados ficam só neste navegador, e o backup leva para outro lugar.</small></span></label>
+      <label class="onde-op"><input type="radio" name="onde" value="google"><span><b>Na minha planilha do Google</b><small>Sincroniza computador e celular. Precisa do Bolso em Dia instalado na sua conta Google.</small></span></label>
+    </div>
+    <div class="onde-google" id="ondeGoogle">
+      <label class="campo-rot"><span class="lbl">Link do seu Bolso em Dia no Google</span><span class="cx boxed"><input type="text" id="ondeLink" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec"></span></label>
+      <p class="hint">É o endereço que termina em <b>/exec</b>, o mesmo que você abre no celular. Ainda não tem? <a href="https://github.com/carolmoraiss/bolso-em-dia#no-google-sincronizado" target="_blank" rel="noopener noreferrer">Veja como instalar</a>.</p>
+    </div>
+    <label class="check" id="ondeLevarRot"><input type="checkbox" id="ondeLevar" checked><span id="ondeLevarTxt"></span></label>
+    <p class="erro-senha" id="ondeErro" role="alert"></p>
+    <div class="dlg-acoes">
+      <button class="btn" value="cancelar" type="submit">Cancelar</button>
+      <a class="btn btn-primary" id="ondeIr" href="#" target="_blank" rel="noopener noreferrer">Abrir no Google</a>
+      <button class="btn btn-primary" value="ok" type="submit" id="ondeOk">Continuar neste aparelho</button>
     </div>
   </form>
 </dialog>
