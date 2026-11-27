@@ -72,7 +72,7 @@ function carregarPagina() {
   assert.ok(logica.includes('function resumo(') && cripto.includes('function decifrar('), 'trechos da página encontrados');
   const ctx = vm.createContext({ console, Intl, crypto: globalThis.crypto, TextEncoder, TextDecoder, btoa, atob });
   vm.runInContext(`var window = this, localStorage; (function(){ ${logica}${cripto}
-    this.pg = { estadoInicial, normalizar, resumo, avancarMes, cifrar, decifrar, CRIPTO_OK, esc }; }).call(this);`, ctx);
+    this.pg = { estadoInicial, normalizar, resumo, avancarMes, fgtsMes, projetarFgts, fgtsPorAno, cifrar, decifrar, CRIPTO_OK, esc }; }).call(this);`, ctx);
   return ctx.pg;
 }
 
@@ -101,7 +101,8 @@ function exemplo() {
       { id: 'p2', nome: 'Reserva', meta: 0, guardado: 0, ate: null, mensal: 150 }
     ],
     besteira: { teto: 300, gastos: [{ id: 'b1', data: '2027-01-05', desc: 'Café', cat: 'lanche', valor: 25, mes: '2027-01' }] },
-    historico: [], quitadas: []
+    historico: [], quitadas: [],
+    fgts: { ativo: true, saldo: 10000, bruto: 5000, aliquota: 8, tr: 0.15, decimo: true, ferias: 3 }
   });
 }
 
@@ -111,6 +112,60 @@ test('quem começa do zero recebe um estado vazio, só com a data de início', (
   assert.equal(v.contas.length + v.cartao.itens.length + v.porquinhos.length + v.anuais.length, 0);
   assert.equal(v.perfil.nome, '');
   assert.match(v.perfil.criadoEm, /^\d{4}-\d{2}-\d{2}$/);
+  assert.equal(v.fgts.ativo, false);
+});
+
+test('FGTS: depósito de 8% do bruto e rendimento de 3% ao ano mais TR', () => {
+  const m = pg.fgtsMes(exemplo(), '2027-01');
+  assert.equal(m.mensal, 400);
+  assert.equal(m.decimo, 0);
+  assert.equal(m.ferias, 0);
+  assert.ok(Math.abs(m.taxa - (1.0015 * Math.pow(1.03, 1 / 12) - 1)) < 1e-12);
+  assert.equal(m.rendimento, 39.7);
+  assert.equal(m.saldoFinal, 10439.7);
+});
+
+test('FGTS: 13º dividido entre novembro e dezembro e adicional de 1/3 no mês das férias', () => {
+  const s = exemplo();
+  assert.equal(pg.fgtsMes(s, '2027-11').decimo, 200);
+  assert.equal(pg.fgtsMes(s, '2027-12').decimo, 200);
+  assert.equal(pg.fgtsMes(s, '2027-03').ferias, 133.33);
+  s.fgts.decimo = false;
+  s.fgts.bruto = 0;
+  const m = pg.fgtsMes(s, '2027-11');
+  assert.equal(m.decimo, 0);
+  assert.equal(m.mensal, 320);
+});
+
+test('FGTS: fechar o mês atualiza o saldo só de quem ativou', () => {
+  assert.equal(pg.avancarMes(exemplo(), true).estado.fgts.saldo, 10439.7);
+  const s = exemplo();
+  s.fgts.ativo = false;
+  assert.equal(pg.avancarMes(s, true).estado.fgts.saldo, 10000);
+});
+
+test('FGTS: a estimativa de 3 anos bate com fechar o mês 36 vezes', () => {
+  let s = exemplo();
+  const proj = pg.projetarFgts(s, 36);
+  for (let i = 0; i < 36; i++) s = pg.avancarMes(s, true).estado;
+  assert.equal(proj.length, 36);
+  assert.equal(proj[35].saldoFinal, s.fgts.saldo);
+  const anos = pg.fgtsPorAno(proj);
+  assert.equal(anos.length, 3);
+  assert.equal(anos[0].ate, '2027-12');
+  assert.equal(anos[0].deposito, 5333.33);
+  assert.equal(anos[2].saldo, s.fgts.saldo);
+});
+
+test('FGTS: valores fora da faixa voltam ao padrão', () => {
+  const n = pg.normalizar({ salario: 1, contas: [], fgts: { ativo: 'sim', saldo: -5, aliquota: 999, tr: -1, ferias: 13 } });
+  assert.equal(n.fgts.ativo, false);
+  assert.equal(n.fgts.saldo, 0);
+  assert.equal(n.fgts.aliquota, 8);
+  assert.equal(n.fgts.tr, 0.15);
+  assert.equal(n.fgts.ferias, null);
+  assert.equal(n.fgts.decimo, true);
+  assert.equal(pg.normalizar({ salario: 1, contas: [] }).fgts.ativo, false);
 });
 
 test('resumo do mês soma contas, cartão, reservas, porquinhos e margem', () => {
