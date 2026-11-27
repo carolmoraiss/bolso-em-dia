@@ -6,7 +6,7 @@ const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov'
 const MESES_LONGOS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const CATEGORIAS = { casa:'Casa e contas', transporte:'Transporte', alimentacao:'Alimentação', saude:'Saúde', educacao:'Educação', assinaturas:'Assinaturas', cuidados:'Cuidados pessoais', emprestimos:'Empréstimos', outros:'Outros' };
 const CAT_BESTEIRA = { delivery:'Delivery', lanche:'Lanche e café', online:'Compras online', lazer:'Lazer', outros:'Outros' };
-const SECOES = [['resumo','Resumo'],['destino','Para onde vai'],['contas','Contas'],['cartao','Cartão'],['anuais','Anuais'],['porquinhos','Porquinhos'],['besteiras','Besteiras'],['projecao','Próximos 12 meses'],['dividas','Dívidas'],['historico','Histórico']];
+const SECOES = [['resumo','Resumo'],['destino','Para onde vai'],['contas','Contas'],['cartao','Cartão'],['anuais','Anuais'],['porquinhos','Porquinhos'],['besteiras','Besteiras'],['fgts','FGTS'],['projecao','Próximos 12 meses'],['dividas','Dívidas'],['historico','Histórico']];
 const SUG_ASSIN = ['Netflix', 'Prime Video', 'Disney+', 'Max', 'Globoplay', 'YouTube Premium', 'iCloud'];
 const SUGESTOES = ['IPTU','Revisão do carro','Troca de pneus','Material escolar','Presentes de fim de ano','Anuidade do cartão'];
 
@@ -24,6 +24,7 @@ const fBRL = new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }
 const fNum = new Intl.NumberFormat('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
 const fInt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits:0 });
 const fUm = new Intl.NumberFormat('pt-BR', { maximumFractionDigits:1 });
+const fTaxa = new Intl.NumberFormat('pt-BR', { maximumFractionDigits:4 });
 const fPct = new Intl.NumberFormat('pt-BR', { style:'percent', maximumFractionDigits:0 });
 let fComp;
 try { fComp = new Intl.NumberFormat('pt-BR', { notation:'compact', maximumFractionDigits:1 }); } catch { fComp = fInt; }
@@ -39,13 +40,13 @@ const local = {
   apagar(chave){ try { localStorage.removeItem(chave); } catch {} }
 };
 
-function lerDinheiro(txt){
+function lerDinheiro(txt, casas){
   let s = String(txt == null ? '' : txt).replace(/[R$\s]/g, '');
   if (!s) return null;
   if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
   else { const p = s.split('.'); if (p.length > 2 || (p.length === 2 && p[1].length === 3)) s = p.join(''); }
   const n = Number(s);
-  return isFinite(n) ? Math.max(0, r2(n)) : null;
+  return isFinite(n) ? Math.max(0, casas ? Math.round(n * 10 ** casas) / 10 ** casas : r2(n)) : null;
 }
 function lerInteiro(txt){ const n = parseInt(String(txt == null ? '' : txt).replace(/\D/g, ''), 10); return n > 0 ? n : null; }
 
@@ -73,6 +74,7 @@ const ICON = {
   subir: svg('<path d="M12 16V5M7 10l5-5 5 5M5 20h14"/>'),
   impressora: svg('<path d="M7 9V3.5h10V9"/><rect x="3.5" y="9" width="17" height="8" rx="2"/><path d="M7 14h10v6.5H7Z"/>'),
   reset: svg('<path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5"/><path d="M4 4v4.5h4.5"/>'),
+  banco: svg('<path d="M3.5 9.5 12 4l8.5 5.5Z"/><path d="M5.5 10v7M9.8 10v7M14.2 10v7M18.5 10v7M3.5 20h17"/>'),
   calendario: svg('<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/>'),
   lixo: svg('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>'),
   externo: svg('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'),
@@ -88,6 +90,7 @@ const STATUS = { ok:{ rotulo:'Cabe no bolso', icone:ICON.check }, warn:{ rotulo:
 function pill(st, txt){ return '<span class="pill ' + st + '">' + ((STATUS[st] && STATUS[st].icone) || '') + txt + '</span>'; }
 
 const DADOS_ATUAL = 5;
+const FGTS_JUROS_MES = Math.pow(1.03, 1 / 12) - 1, FGTS_TR_PADRAO = 0.15;
 function migrar(s){
   if (!s.perfil.criadoEm) s.perfil.criadoEm = hojeISO();
   s.dados = DADOS_ATUAL;
@@ -105,7 +108,8 @@ function estadoInicial(){
     v:1, dados:DADOS_ATUAL, mesRef:mesHoje(), salario:0, margem:10,
     perfil:{ nome:'', criadoEm:hojeISO() },
     contas:[], cartao:{ limite:null, itens:[] }, anuais:[], porquinhos:[],
-    besteira:{ teto:0, gastos:[] }, historico:[], quitadas:[]
+    besteira:{ teto:0, gastos:[] }, historico:[], quitadas:[],
+    fgts:{ ativo:false, saldo:0, bruto:0, aliquota:8, tr:FGTS_TR_PADRAO, decimo:true, ferias:null }
   };
 }
 
@@ -120,7 +124,7 @@ function normalizar(o){
   const okData = function(v){ return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : ''; };
   const txt = function(v, max){ return String(v == null ? '' : v).replace(/\p{Cc}/gu, ' ').slice(0, max || 120); };
   const ref = okMes(o.mesRef) ? o.mesRef : mesHoje();
-  const c = objeto(o.cartao) ? o.cartao : {}, b = objeto(o.besteira) ? o.besteira : {};
+  const c = objeto(o.cartao) ? o.cartao : {}, b = objeto(o.besteira) ? o.besteira : {}, f = objeto(o.fgts) ? o.fgts : {};
   return {
     v:1, dados:n(o.dados) || 1, mesRef:ref,
     perfil:{ nome:txt((objeto(o.perfil) ? o.perfil : {}).nome, 60).trim(), criadoEm:okData((objeto(o.perfil) ? o.perfil : {}).criadoEm) },
@@ -138,7 +142,9 @@ function normalizar(o){
     historico:arr(o.historico, 600).filter((h) => { return okMes(h.mes); }).map((h) => {
       return { mes:h.mes, salario:n(h.salario) || 0, obrigatorio:n(h.obrigatorio) || 0, cartao:n(h.cartao) || 0, anuais:n(h.anuais) || 0, porquinhos:n(h.porquinhos) || 0, teto:n(h.teto) || 0, besteira:n(h.besteira) || 0, livre:n(h.livre) || 0 };
     }),
-    quitadas:arr(o.quitadas, 600).filter((q) => { return q.nome != null && okMes(q.mes); }).map((q) => { return { nome:txt(q.nome), mes:q.mes, onde:q.onde === 'Cartão' ? 'Cartão' : 'Conta' }; })
+    quitadas:arr(o.quitadas, 600).filter((q) => { return q.nome != null && okMes(q.mes); }).map((q) => { return { nome:txt(q.nome), mes:q.mes, onde:q.onde === 'Cartão' ? 'Cartão' : 'Conta' }; }),
+    fgts:{ ativo:f.ativo === true, saldo:Math.max(0, n(f.saldo) || 0), bruto:Math.max(0, n(f.bruto) || 0), aliquota:n(f.aliquota) > 0 && f.aliquota <= 20 ? f.aliquota : 8,
+      tr:n(f.tr) != null && f.tr >= 0 && f.tr <= 5 ? f.tr : FGTS_TR_PADRAO, decimo:f.decimo !== false, ferias:n(f.ferias) >= 1 && f.ferias <= 12 ? Math.round(f.ferias) : null }
   };
 }
 
@@ -180,6 +186,38 @@ function mesesPorquinho(p, ref){
   if (!p.meta) return Infinity;
   const f = faltaPorquinho(p); if (!f) return 0;
   const ap = aportePorquinho(p, ref); return ap > 0 ? Math.ceil(f / ap - 1e-9) : Infinity;
+}
+
+function fgtsBase(s){ return s.fgts.bruto > 0 ? s.fgts.bruto : s.salario; }
+function fgtsMes(s, ref){
+  const f = s.fgts, base = fgtsBase(s), aliq = (f.aliquota || 0) / 100, m = mesNum(ref);
+  const taxa = (1 + (f.tr || 0) / 100) * (1 + FGTS_JUROS_MES) - 1;
+  const rendimento = r2(f.saldo * taxa), mensal = r2(base * aliq);
+  const decimo = f.decimo && (m === 11 || m === 12) ? r2(base * aliq / 2) : 0;
+  const ferias = f.ferias === m ? r2(base * aliq / 3) : 0;
+  const deposito = r2(mensal + decimo + ferias);
+  return { rendimento, mensal, decimo, ferias, deposito, taxa, saldoFinal:r2(f.saldo + rendimento + deposito) };
+}
+function projetarFgts(s, meses){
+  const out = [];
+  let ref = s.mesRef, saldo = s.fgts.saldo;
+  for (let i = 0; i < meses; i++) {
+    const m = fgtsMes({ salario:s.salario, fgts:{ ...s.fgts, saldo } }, ref);
+    out.push({ mes:ref, ...m });
+    saldo = m.saldoFinal; ref = somarMes(ref, 1);
+  }
+  return out;
+}
+function fgtsPorAno(proj){
+  return [0, 1, 2].map((k) => proj.slice(k * 12, k * 12 + 12)).filter((f) => f.length).map((f) => {
+    return { ate:f[f.length - 1].mes, deposito:soma(f.map((p) => p.deposito)), rendimento:soma(f.map((p) => p.rendimento)), saldo:f[f.length - 1].saldoFinal };
+  });
+}
+function tabelaFgtsHTML(proj){
+  const anos = fgtsPorAno(proj), fim = proj[proj.length - 1];
+  return tabela([{ t:'Período' }, { t:'Depósitos', n:1 }, { t:'Rendimento', n:1 }, { t:'Saldo no fim', n:1 }],
+    anos.map((x, k) => [`${k + 1}º ano <small class="muted">até ${rotuloMes(x.ate)}</small>`, brl(x.deposito), brl(x.rendimento), brl(x.saldo)]),
+    ['Total em ' + anos.length + (anos.length > 1 ? ' anos' : ' ano'), brl(soma(anos.map((x) => x.deposito))), brl(soma(anos.map((x) => x.rendimento))), brl(fim.saldoFinal)]);
 }
 
 function resumo(s){
@@ -240,8 +278,10 @@ function avancarMes(s, somarPorquinhos){
   n.historico.push({ mes:s.mesRef, salario:r.salario, obrigatorio:r.obrigatorio, cartao:r.cartao, anuais:r.anuais,
     porquinhos:somarPorquinhos ? r.porquinhos : 0, teto:r.besteira, besteira:r.gastoBesteira, livre:r.livre });
   eventos.forEach((e) => { if (e.tipo === 'quitou') n.quitadas.push({ nome:e.nome, mes:s.mesRef, onde:e.onde }); });
+  const fgts = n.fgts.ativo ? fgtsMes(s, s.mesRef) : null;
+  if (fgts) n.fgts.saldo = fgts.saldoFinal;
   n.mesRef = somarMes(s.mesRef, 1);
-  return { estado:n, eventos, resumo:r };
+  return { estado:n, eventos, resumo:r, fgts };
 }
 
 function projetar(s, meses){
@@ -364,6 +404,11 @@ function recadosTostao(){
   }
   if (!NUVEM && diasDesde(PREFS.ultimoBackup) > 30) diga(20, 'preocupado', 'Seus dados estão só neste navegador e faz tempo que você não guarda um backup. Bora fazer uma cópia?', ['Exportar backup', 'exportar']);
   if (!S.porquinhos.length && r.guardavel > 0) diga(15, 'feliz', `Sobram ${brl(r.guardavel)} por mês sem apertar${vocativo}. Que tal dar um destino com um porquinho?`, ['Criar porquinho', '#porquinhos']);
+  if (S.fgts.ativo) {
+    const fg = fgtsMes(S, ref);
+    if (!S.fgts.bruto) diga(24, 'preocupado', `Para o FGTS ficar exato, me conte o seu salário bruto${vocativo}. Por enquanto, calculo em cima do líquido.`, ['Informar', '#fgts']);
+    else diga(18, 'feliz', `Este mês, seu FGTS recebe ${brl(fg.deposito)}${fg.rendimento ? ` e rende ${brl(fg.rendimento)}` : ''}. Ao fechar o mês, o saldo vai para ${brl(fg.saldoFinal)}.`, ['Ver FGTS', '#fgts']);
+  }
   const porDia = besteiraPorDia();
   diga(37, 'feliz', variar([
     `${voce} está economizando bastante esse mês, parabéns!${porDia ? ` Hoje ainda dá pra gastar ${brl(porDia)} em besteira.` : ''}`,
@@ -669,13 +714,22 @@ function miniColsHTML(itens, cls){
 }
 const valorHTML = function(v){ return '<span class="moeda">R$</span>' + (v < 0 ? '−' : '') + num(Math.abs(v)); };
 
+function valorGlobal(g){
+  return { nome:S.perfil.nome, salario:S.salario, margem:S.margem, teto:S.besteira.teto, limite:S.cartao.limite,
+    fgAtivo:S.fgts.ativo, fgSaldo:S.fgts.saldo, fgBruto:S.fgts.bruto, fgAliq:S.fgts.aliquota, fgTR:S.fgts.tr, fg13:S.fgts.decimo, fgFerias:S.fgts.ferias }[g];
+}
+function textoGlobal(el){
+  const v = valorGlobal(el.dataset.g), t = el.dataset.t;
+  if (t === 'pct') return fUm.format(v || 0);
+  if (t === 'taxa') return fTaxa.format(v || 0);
+  if (t === 'money') return numCampo(v);
+  return v == null ? '' : String(v);
+}
 function sincronizarGlobais(){
   $$('[data-g]').forEach((el) => {
     if (el === document.activeElement) return;
-    const g = el.dataset.g;
-    if (g === 'nome') el.value = S.perfil.nome;
-    else if (g === 'margem') el.value = fUm.format(S.margem || 0);
-    else el.value = numCampo(g === 'salario' ? S.salario : g === 'teto' ? S.besteira.teto : S.cartao.limite);
+    if (el.type === 'checkbox') el.checked = Boolean(valorGlobal(el.dataset.g));
+    else el.value = textoGlobal(el);
   });
 }
 
@@ -977,6 +1031,36 @@ function renderPorquinhos(rebuild){
   $('#capacidade').innerHTML = capacidadeHTML(R);
   $('#capResumo').textContent = brl(R.guardavel);
 }
+let fgProj = [];
+function graficoFgtsHTML(saldoHoje, proj){
+  const pontos = [saldoHoje].concat(proj.map((p) => p.saldoFinal)), n = pontos.length - 1, max = Math.max(1, ...pontos);
+  const x = (i) => (i / n * 100).toFixed(3), y = (v) => (100 - v / max * 92).toFixed(3);
+  const linha = pontos.map((v, i) => `${i ? 'L' : 'M'}${x(i)} ${y(v)}`).join(' ');
+  const anos = [12, 24].filter((i) => i < n).map((i) => `<line class="fg-ano" x1="${x(i)}" x2="${x(i)}" y1="0" y2="100"/>`).join('');
+  return `<svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Saldo do FGTS nos próximos ${n} meses, de ${brl(saldoHoje)} para ${brl(pontos[n])}">` +
+    `${anos}<path class="fg-area" d="${linha} L100 100 L0 100 Z"/><path class="fg-linha" d="${linha}"/></svg><span class="fg-guia" hidden></span><span class="fg-ponto" hidden></span>`;
+}
+function renderFgts(){
+  const f = S.fgts;
+  $('#fgDados').hidden = !f.ativo; $('#fgResultado').hidden = !f.ativo; $('#fgVazio').hidden = f.ativo;
+  contar('#fgSaldoTopo', f.ativo ? f.saldo : 0);
+  if (!f.ativo) return;
+  const m = fgtsMes(S, S.mesRef);
+  const linha = (k, v, cls) => `<div${cls ? ` class="${cls}"` : ''}><dt>${k}</dt><dd>${v}</dd></div>`;
+  $('#fgBaseAviso').hidden = f.bruto > 0;
+  $('#fgMes').innerHTML = linha('Saldo hoje', brl(f.saldo)) +
+    linha(`Depósito do mês (${fUm.format(f.aliquota)}% de ${brl(fgtsBase(S))})`, `+ ${brl(m.mensal)}`) +
+    (m.decimo ? linha('Parte do 13º salário', `+ ${brl(m.decimo)}`) : '') +
+    (m.ferias ? linha('Adicional de férias (1/3)', `+ ${brl(m.ferias)}`) : '') +
+    linha(`Rendimento (${fTaxa.format(m.taxa * 100)}% no mês)`, `+ ${brl(m.rendimento)}`) +
+    linha(`Saldo ao fechar ${MESES_LONGOS[mesNum(S.mesRef) - 1]}`, brl(m.saldoFinal), 'total ok');
+  fgProj = projetarFgts(S, 36);
+  const anos = fgtsPorAno(fgProj);
+  $('#fgProjResumo').textContent = brl(fgProj[fgProj.length - 1].saldoFinal);
+  $('#fgGraf').innerHTML = graficoFgtsHTML(f.saldo, fgProj);
+  $('#fgMarcos').innerHTML = `<span>Hoje<b>${brl(f.saldo)}</b></span>` + anos.map((x, k) => `<span>Em ${k + 1} ${k ? 'anos' : 'ano'}<b>${brl(x.saldo)}</b></span>`).join('');
+  $('#fgAnos').innerHTML = tabelaFgtsHTML(fgProj);
+}
 function renderSim(){
   const v = lerDinheiro($('#simValor').value), m = lerInteiro($('#simMeses').value), out = $('#simRes');
   if (!v || !m) { out.innerHTML = '<p class="hint">Preencha quanto e em quantos meses para ver a conta.</p>'; return; }
@@ -1086,6 +1170,16 @@ function relatorioHTML(){
       '<h4>Anotações</h4>' + tabela([{ t:'Dia' }, { t:'O que foi' }, { t:'Tipo' }, { t:'Valor', n:1 }], doMes.map((g) => { return [dataCurta(g.data), esc(g.desc), CAT_BESTEIRA[g.cat], brl(g.valor)]; }))
       : vazio('Nenhuma besteira anotada neste mês.')), brl(r.gastoBesteira));
 
+  if (S.fgts.ativo) {
+    const fg = fgtsMes(S, ref), fp = projetarFgts(S, 36), fim = fp[fp.length - 1];
+    h += sec('fgts', 'FGTS', '<div class="rel-kpis">' + kpi('Saldo hoje', brl(S.fgts.saldo)) +
+      kpi('Depósito do mês', brl(fg.deposito), fUm.format(S.fgts.aliquota) + '% de ' + brl(fgtsBase(S))) +
+      kpi('Rendimento do mês', brl(fg.rendimento), '3% ao ano + TR de ' + fTaxa.format(S.fgts.tr) + '% ao mês') +
+      kpi('Em 3 anos', brl(fim.saldoFinal), 'ao fechar ' + rotuloMes(fim.mes)) + '</div>' +
+      '<h4>Próximos 3 anos</h4>' + tabelaFgtsHTML(fp) +
+      '<p class="rel-nota">Estimativa com o salário de hoje, sem aumentos, saques nem a distribuição anual de lucros do fundo.</p>', brl(S.fgts.saldo));
+  }
+
   h += sec('projecao', 'Próximos 12 meses', '<div class="rel-graf">' + svgProjecao(PROJ, 760, false, 240) + '</div><ul class="eventos">' + eventosHTML() + '</ul><h4>Mês a mês</h4><div class="tbl-scroll"><table class="rel">' + tabelaProjecaoHTML() + '</table></div>');
 
   h += sec('dividas', 'Dívidas e parcelas', r.parcelados.length ? tabela([{ t:'Item' }, { t:'Onde' }, { t:'Parcela', n:1 }, { t:'Restantes', n:1 }, { t:'Última', n:1 }, { t:'Falta pagar', n:1 }],
@@ -1127,7 +1221,7 @@ function abaAtiva(){ const b = $('.aba[aria-selected="true"]'); return b ? b.dat
 function render(rebuild){
   recalcular();
   renderTopo(); renderResumo(); renderAviso(); renderAvisoMes(); renderContadores(); renderVisao(); renderPassos(); renderPerfil(); renderDica();
-  renderContas(rebuild); renderCartao(rebuild); renderAnuais(rebuild); renderPorquinhos(rebuild); renderBesteiras(rebuild); renderSim();
+  renderContas(rebuild); renderCartao(rebuild); renderAnuais(rebuild); renderPorquinhos(rebuild); renderBesteiras(rebuild); renderFgts(); renderSim();
   if (abaAtiva() === 'relatorio') renderRelatorio();
   previewCompra();
   salvar();
@@ -1208,6 +1302,7 @@ function abrirFechar(){
     if (e.tipo === 'meta') itens.push('O porquinho <b>' + esc(e.nome) + '</b> bate a meta.');
   });
   if (R.anuais > 0) itens.push('Soma ' + brl(R.anuais) + ' ao que está separado para os gastos anuais.');
+  if (sim.fgts) itens.push('Atualiza o FGTS: ' + brl(sim.fgts.deposito) + ' de depósito e ' + brl(sim.fgts.rendimento) + ' de rendimento, chegando a <b>' + brl(sim.fgts.saldoFinal) + '</b>.');
   itens.push('Guarda no histórico as besteiras de ' + MESES_LONGOS[mesNum(S.mesRef) - 1] + ' (' + brl(R.gastoBesteira) + ') e começa ' + MESES_LONGOS[mesNum(prox) - 1] + ' do zero.');
   itens.push('Passa o mês de referência para <b>' + rotuloMesLongo(prox) + '</b>.');
   $('#dfTit').textContent = 'Fechar ' + rotuloMesLongo(S.mesRef);
@@ -1467,6 +1562,8 @@ function pedirLimpeza(){
 
 function ler(el){
   const t = el.dataset.t;
+  if (el.type === 'checkbox') return el.checked;
+  if (t === 'taxa') return lerDinheiro(el.value, 4);
   if (t === 'money' || t === 'pct') return lerDinheiro(el.value);
   if (t === 'int') return lerInteiro(el.value);
   if (t === 'mes') return el.value ? +el.value : null;
@@ -1479,6 +1576,13 @@ function setGlobal(g, v){
   else if (g === 'margem') S.margem = Math.min(50, Math.max(0, v || 0));
   else if (g === 'teto') S.besteira.teto = v || 0;
   else if (g === 'limite') S.cartao.limite = v;
+  else if (g === 'fgAtivo') S.fgts.ativo = Boolean(v);
+  else if (g === 'fgSaldo') S.fgts.saldo = v || 0;
+  else if (g === 'fgBruto') S.fgts.bruto = v || 0;
+  else if (g === 'fgAliq') S.fgts.aliquota = v > 0 ? Math.min(20, v) : 8;
+  else if (g === 'fgTR') S.fgts.tr = Math.min(5, v || 0);
+  else if (g === 'fg13') S.fgts.decimo = Boolean(v);
+  else if (g === 'fgFerias') S.fgts.ferias = v;
 }
 document.addEventListener('input', (e) => {
   const el = e.target;
@@ -1499,7 +1603,7 @@ document.addEventListener('change', (e) => {
   const el = e.target, t = el.dataset && el.dataset.t;
   if (t === 'money') { const v = lerDinheiro(el.value); el.value = v ? num(v) : ''; }
   else if (t === 'int') { el.value = lerInteiro(el.value) || ''; }
-  else if (t === 'pct') { el.value = fUm.format(S.margem || 0); }
+  else if ((t === 'pct' || t === 'taxa') && el.dataset.g) { el.value = textoGlobal(el); }
   if (el.dataset && el.dataset.f === 'categoria') { render(true); return; }
   if (el.dataset && (el.dataset.f === 'ate' || (el.dataset.f === 'parcelas' && el.closest('[data-lista="anuais"]')))) { render(true); return; }
   if (el.dataset && (el.dataset.f === 'atual' || el.dataset.f === 'total')) {
@@ -1657,7 +1761,7 @@ seg.addEventListener('focusin', (e) => { const el = e.target.closest('.parte'); 
 seg.addEventListener('focusout', esconderTip);
 window.addEventListener('scroll', esconderTip, { passive:true });
 
-const ABAS = ['visao', 'contas', 'cartao', 'anuais', 'porquinhos', 'besteiras', 'relatorio', 'perfil'];
+const ABAS = ['visao', 'contas', 'cartao', 'anuais', 'porquinhos', 'besteiras', 'fgts', 'relatorio', 'perfil'];
 let abaAtual = null;
 function moverIndicador(){
   const ativa = $('.aba[aria-selected="true"]'), ind = $('.abas-indicador');
@@ -1674,7 +1778,7 @@ function mostrarAba(id, animar = true){
   $$('.painel').forEach((p) => { p.hidden = p.id !== 'painel-' + id; });
   moverIndicador();
   $$('[data-nav]').forEach((n) => {
-    const ativo = n.dataset.nav === id || (n.dataset.nav === 'mais' && ['cartao', 'anuais', 'besteiras', 'relatorio', 'perfil'].includes(id));
+    const ativo = n.dataset.nav === id || (n.dataset.nav === 'mais' && ['cartao', 'anuais', 'besteiras', 'fgts', 'relatorio', 'perfil'].includes(id));
     if (ativo) n.setAttribute('aria-current', 'page'); else n.removeAttribute('aria-current');
   });
   const painel = $(`#painel-${id}`);
@@ -1821,6 +1925,22 @@ document.addEventListener('toggle', (e) => {
   mov.crescer(d);
 }, true);
 
+const grafFgts = $('#fgGraf');
+grafFgts.addEventListener('pointermove', (e) => {
+  if (!fgProj.length) return;
+  const caixa = grafFgts.getBoundingClientRect(), n = fgProj.length;
+  const i = Math.max(0, Math.min(n, Math.round((e.clientX - caixa.left) / caixa.width * n)));
+  const v = i ? fgProj[i - 1].saldoFinal : S.fgts.saldo, max = Math.max(1, S.fgts.saldo, ...fgProj.map((p) => p.saldoFinal));
+  const guia = $('.fg-guia', grafFgts), ponto = $('.fg-ponto', grafFgts);
+  guia.style.left = ponto.style.left = `${i / n * 100}%`;
+  ponto.style.top = `${100 - v / max * 92}%`;
+  guia.hidden = ponto.hidden = false;
+  const p = fgProj[i - 1], l = (k, x) => `<span class="tip-l"><span>${k}</span><span>${x}</span></span>`;
+  mostrarTip(i ? `<strong>Ao fechar ${rotuloMesLongo(p.mes)}</strong>${l('Saldo', brl(p.saldoFinal))}${l('Depósito', brl(p.deposito))}${l('Rendimento', brl(p.rendimento))}`
+    : `<strong>Hoje</strong>${l('Saldo', brl(v))}`, e.clientX, e.clientY);
+});
+grafFgts.addEventListener('pointerleave', () => { esconderTip(); $$('.fg-guia, .fg-ponto', grafFgts).forEach((el) => { el.hidden = true; }); });
+
 $$('[data-icon]').forEach((el) => { el.innerHTML = ICON[el.dataset.icon] || ''; });
 $('#fbCats').innerHTML = Object.keys(CAT_BESTEIRA).map((k, i) => { return '<label class="chip"><input type="radio" name="fbCat" value="' + k + '"' + (i === 0 ? ' checked' : '') + '><span>' + CAT_BESTEIRA[k] + '</span></label>'; }).join('');
 $('#relSecoes').innerHTML = SECOES.map((s) => { return '<label class="chip"><input type="checkbox" data-sec="' + s[0] + '"' + (PREFS.secoes[s[0]] === false ? '' : ' checked') + '><span>' + s[1] + '</span></label>'; }).join('');
@@ -1831,6 +1951,7 @@ $$('[data-dobra]').forEach((d) => { d.open = telaLarga; });
 $('#bvMascote').innerHTML = tostao('acenando', 'grande');
 $('#anCats').innerHTML = Object.keys(CAT_BESTEIRA).map((k, i) => `<label class="chip"><input type="radio" name="anCat" value="${k}"${i === 0 ? ' checked' : ''}><span>${CAT_BESTEIRA[k]}</span></label>`).join('');
 $('#anCategoria').innerHTML = optsCat('outros');
+$('#inFgFerias').innerHTML = '<option value="">Sem data</option>' + MESES_LONGOS.map((m, i) => `<option value="${i + 1}">${cap(m)}</option>`).join('');
 aplicarTema(tema);
 render(true);
 previewCompra();
