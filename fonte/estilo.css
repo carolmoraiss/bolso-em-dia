@@ -651,3 +651,22 @@ dialog[open]::backdrop{animation:fundo-entra .26s ease}
 .recado-ponto.humor-festa{background:var(--s5)}
 
 @media (max-width:600px){.recados li{grid-template-columns:auto minmax(0,1fr)}.recados li .btn{grid-column:2;justify-self:start}}
+
+.fg-campos{display:grid;gap:14px}
+.fg-campos .form-grid .check{align-self:end}
+.fg-proj-topo{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;margin-bottom:12px}
+.fg-proj-topo strong{font-size:1.2rem;font-variant-numeric:tabular-nums}
+.fg-graf{position:relative;height:170px;margin:4px 0 8px;border-bottom:1px solid var(--axis);touch-action:pan-y;cursor:crosshair}
+.fg-graf svg{display:block;width:100%;height:100%;overflow:visible}
+.fg-area{fill:var(--accent);opacity:.12}
+.fg-linha{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.fg-ano{stroke:var(--line-strong);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
+.fg-guia{position:absolute;top:0;bottom:0;width:1px;background:var(--line-strong);pointer-events:none}
+.fg-ponto{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--surface);pointer-events:none}
+.fg-marcos{display:flex;justify-content:space-between;gap:8px;margin-bottom:12px;font-size:.76rem;color:var(--muted)}
+.fg-marcos span{flex:1;text-align:center}
+.fg-marcos span:first-child{text-align:left}
+.fg-marcos span:last-child{text-align:right}
+.fg-marcos b{display:block;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+
+@media (max-width:600px){.fg-anos table.rel{font-size:.78rem}.fg-anos table.rel th,.fg-anos table.rel td{padding:7px 4px}}
