@@ -9,6 +9,9 @@ CSP = ("default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline
        "font-src https://fonts.gstatic.com; img-src data: blob:; connect-src 'none'; "
        "base-uri 'none'; form-action 'none'; object-src 'none'")
 
+SEM_MOLDURA = ("<script>if (window.top !== window.self && location.protocol !== 'file:') "
+               "document.documentElement.style.display = 'none';</script>\n")
+
 
 def ler(nome: str) -> str:
     return (FONTE / nome).read_text(encoding='utf-8')
@@ -30,7 +33,7 @@ def main() -> None:
     DIST.mkdir(exist_ok=True)
     saidas = {
         DIST / 'Index.html': montar(''),
-        DIST / 'bolso-em-dia.html': montar(f'<meta http-equiv="Content-Security-Policy" content="{CSP}">\n'),
+        DIST / 'bolso-em-dia.html': montar(f'<meta http-equiv="Content-Security-Policy" content="{CSP}">\n{SEM_MOLDURA}'),
     }
     for caminho, conteudo in saidas.items():
         caminho.write_text(conteudo, encoding='utf-8')

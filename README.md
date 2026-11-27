@@ -2,7 +2,7 @@
 
 Controle de finanças pessoais que cabe num arquivo HTML: salário, contas fixas, parcelas, cartão de crédito, gastos anuais (IPVA, licenciamento), porquinhos e as pequenas besteiras do dia a dia.
 
-Funciona de dois jeitos: aberto direto no navegador, sem conta e sem servidor, ou publicado no Google Apps Script, com os dados numa planilha do Google Sheets da sua conta e sincronizados entre o computador e o celular.
+Para usar, abra **<https://carolmoraiss.github.io/bolso-em-dia/>** no computador ou no celular. Não precisa de conta nem de instalação, e os dados ficam só no seu navegador. Para ter os mesmos dados no computador e no celular, dá para publicar a página no Google Apps Script da sua conta, com tudo guardado numa planilha do Google Sheets.
 
 <p align="center">
   <img src="docs/visao-geral.png" alt="Visão geral no computador: salário, quanto fica livre, quanto dá para guardar, recado do Tostão e para onde vai o salário" width="71%">
@@ -41,23 +41,31 @@ O Tostão funciona com regras simples escritas no próprio código: não usa int
 
 ## Como usar
 
-Os dois jeitos têm as mesmas telas. A diferença é onde os dados ficam guardados.
+Há três jeitos, todos com as mesmas telas. A diferença é onde os dados ficam guardados.
 
-| | Arquivo no navegador | Google Apps Script |
-|---|---|---|
-| Onde ficam os dados | no navegador em que você abriu | numa planilha do Google Sheets da sua conta, com uma cópia no aparelho |
-| Computador e celular juntos | não; o backup leva os dados de um para o outro | sim, pelo mesmo link |
-| Precisa de conta | não | conta Google |
-| Instalação | nenhuma | uma vez, uns 10 minutos |
+| | Pelo link | Arquivo baixado | Google Apps Script |
+|---|---|---|---|
+| Onde ficam os dados | no navegador em que você abriu | no navegador em que você abriu | numa planilha do Google Sheets da sua conta, com uma cópia no aparelho |
+| Computador e celular juntos | não; o backup leva os dados de um para o outro | não; o backup leva os dados de um para o outro | sim, pelo mesmo link |
+| Sem internet | precisa de internet para abrir | funciona | precisa para abrir; o que mudar sem conexão é enviado depois |
+| Precisa de conta | não | não | conta Google |
+| Instalação | nenhuma | nenhuma | uma vez, uns 10 minutos |
 
 No primeiro acesso, o Tostão pergunta só o seu nome e o salário. Depois disso, o guia **Primeiros passos** mostra o que falta preencher (contas, cartão, gastos do ano, um porquinho e o teto de besteiras) e some quando tudo está pronto. A aba **Perfil** mostra o nome, desde quando você usa, a conta Google vinculada e onde os dados estão guardados.
 
-### No navegador
+### Pelo link (o mais fácil)
+
+1. Abra **<https://carolmoraiss.github.io/bolso-em-dia/>** no computador ou no celular.
+2. No celular, use **Adicionar à tela inicial** (no Safari, pelo botão Compartilhar; no Chrome, pelo menu ⋮) para abrir como um aplicativo.
+
+Os dados ficam só no navegador daquele aparelho e não são enviados para o GitHub nem para ninguém. Limpar os dados do navegador apaga tudo, então exporte um backup de vez em quando em **⋯ › Exportar backup**. Se passar de 30 dias sem backup, o Tostão lembra. Para levar os dados a outro aparelho, exporte num e use **⋯ › Importar backup** no outro.
+
+### Arquivo baixado
 
 1. Baixe o `bolso-em-dia.html` da [última versão publicada](https://github.com/carolmoraiss/bolso-em-dia/releases/latest) ou gere o arquivo a partir do código com `python3 montar.py` (ele fica em `dist/bolso-em-dia.html`).
-2. Abra o arquivo no navegador.
+2. Abra o arquivo no navegador do computador. Funciona até sem internet.
 
-Para levar os dados para outro aparelho, use **⋯ › Exportar backup** num aparelho e **⋯ › Importar backup** no outro.
+No celular, prefira o link: o iPhone abre arquivos HTML só numa pré-visualização, e o Chrome do Android bloqueia arquivos locais. Os dados do link e os do arquivo não se misturam, porque cada um tem o seu próprio armazenamento no navegador.
 
 ### No Google, sincronizado
 
@@ -95,9 +103,9 @@ Para publicar uma versão nova mantendo o mesmo link, rode `./atualizar.sh`.
 
 Para atualizar depois: cole os arquivos novos nos mesmos lugares e vá em **Implantar › Gerenciar implantações › lápis › Versão: Nova versão › Implantar**. O link continua o mesmo.
 
-#### Levar os dados do arquivo para o Google
+#### Levar os dados para o Google
 
-No arquivo, use **⋯ › Exportar backup**. No link do Google, use **⋯ › Importar backup**, ou **Tenho um backup** na tela de boas-vindas.
+No link do GitHub Pages ou no arquivo, use **⋯ › Exportar backup**. No link do Google, use **⋯ › Importar backup**, ou **Tenho um backup** na tela de boas-vindas.
 
 ## Como os dados são salvos no Google
 
@@ -126,7 +134,8 @@ No arquivo, use **⋯ › Exportar backup**. No link do Google, use **⋯ › Im
 - **Sem injeção de fórmula**: textos que começam com `=`, `+`, `-` ou `@` são gravados na planilha como texto, nunca como fórmula. Isso impede, por exemplo, uma fórmula que mande os dados da planilha para outro site.
 - **Limites no servidor**: envios grandes demais ou fora do formato são recusados, e a gravação usa trava para dois aparelhos não escreverem ao mesmo tempo.
 - **Backup com senha**: **⋯ › Exportar backup** oferece proteger o arquivo com senha, usando AES-256-GCM e chave derivada com PBKDF2-SHA256 em 310 mil iterações. Sem a senha o arquivo é ilegível, e se ele for alterado a importação é recusada.
-- **Arquivo local isolado**: a versão para abrir no navegador traz uma Content Security Policy que impede a página de carregar ou enviar qualquer coisa para outros sites, com exceção das fontes do Google. Nenhum endereço é enviado junto (referrer desligado).
+- **Página isolada**: a versão do link e do arquivo traz uma Content Security Policy que impede a página de carregar ou enviar qualquer coisa para outros sites, com exceção das fontes do Google. Nenhum endereço é enviado junto (referrer desligado). Ela também se recusa a aparecer dentro de outro site, o que impede alguém de esconder a página atrás de botões falsos (clickjacking).
+- **Publicação verificada**: o GitHub Pages só recebe uma versão nova depois que lint, testes e `npm audit` passam. As actions do GitHub ficam fixadas pelo SHA do commit, e não por uma tag que poderia ser trocada.
 - **Nenhuma biblioteca de terceiros** dentro da página ou do servidor. As ferramentas de desenvolvimento ficam com versão exata no `package.json`, e o `npm audit` não aponta nenhuma falha.
 - **Computador emprestado**: **⋯ › Apagar dados deste aparelho** remove a cópia do navegador. No modo Google, os dados continuam na planilha.
 
@@ -136,6 +145,7 @@ No arquivo, use **⋯ › Exportar backup**. No link do Google, use **⋯ › Im
 - Não compartilhe a planilha: quem tiver acesso a ela vê tudo.
 - Prefira o backup **com senha**, principalmente se for mandar o arquivo por mensagem ou e-mail.
 - O `clasp` guarda uma chave de acesso em `~/.clasprc.json` (os scripts deixam esse arquivo legível só pelo seu usuário). Se não for atualizar a página por um tempo, rode `npx --yes @google/clasp@3.4.1 logout` ou revogue o acesso em <https://myaccount.google.com/permissions>.
+- **Para quem mantém o projeto**: todas as páginas publicadas em `carolmoraiss.github.io` dividem o mesmo armazenamento do navegador. Qualquer outro projeto publicado no GitHub Pages dessa conta conseguiria ler os dados que o Bolso em Dia guarda nos navegadores dos visitantes. Não publique no Pages dessa conta código que não foi revisado. Para isolar de vez, use um domínio próprio.
 - O `clasp` 3.4.1, a versão mais recente, tem 8 alertas do `npm audit` (6 moderados e 2 altos) em dependências internas como `zod`, `minimatch` e `glob`. São falhas de travamento por excesso de dados locais, e a única correção disponível quebra o próprio `clasp`. Ele só roda na sua máquina na hora de instalar ou atualizar. Se preferir não usar nenhuma dependência, faça a instalação pelo navegador.
 
 ## Desenvolvimento
@@ -152,6 +162,8 @@ npm run check    # lint, testes e npm audit
 
 Os testes usam o executor nativo do Node (`node:test`) e rodam o `Code.gs` de verdade contra uma planilha simulada em memória, com dados fictícios.
 
+A cada merge na `main`, o workflow `.github/workflows/pages.yml` roda `npm run check` e, se tudo passar, publica o `dist/bolso-em-dia.html` no GitHub Pages. Toda semana, o Dependabot abre PRs para a `develop` com atualizações dos pacotes npm e das actions.
+
 ### Estrutura
 
 | Caminho | O que é |
@@ -165,6 +177,7 @@ Os testes usam o executor nativo do Node (`node:test`) e rodam o `Code.gs` de ve
 | `montar.py` | junta `fonte/` em `dist/Index.html` (Apps Script) e `dist/bolso-em-dia.html` (arquivo local, com CSP) |
 | `instalar.sh`, `atualizar.sh` | instalação e atualização pelo terminal, com `clasp` |
 | `testes/` | testes automatizados |
+| `.github/` | publicação no GitHub Pages e configuração do Dependabot |
 | `docs/` | imagens deste README |
 
 ### Decisões técnicas
@@ -173,7 +186,7 @@ Os testes usam o executor nativo do Node (`node:test`) e rodam o `Code.gs` de ve
 - **Recursos nativos do navegador**: gráficos em SVG, animações com Web Animations API e View Transitions, criptografia com Web Crypto. Não há dependência para manter atualizada dentro da página.
 - **Uma porta de entrada para os dados**: a função `normalizar()` valida tudo o que chega do navegador, da planilha ou de um backup, e as migrações de formato acontecem logo depois dela.
 - **Concorrência otimista**: o número de versão fica na aba Config. Uma gravação com versão desatualizada vira conflito em vez de sobrescrever, e o gatilho `onEdit` sobe a versão quando alguém edita a planilha à mão.
-- **Duas saídas do mesmo código**: a versão do Apps Script não leva CSP própria, porque o Google serve a página num iframe isolado em `googleusercontent.com` e injeta os próprios scripts. A versão local leva uma CSP que bloqueia qualquer conexão.
+- **Duas saídas do mesmo código**: a versão do Apps Script não leva CSP própria, porque o Google serve a página num iframe isolado em `googleusercontent.com` e injeta os próprios scripts. A versão local, que também é a do GitHub Pages, leva uma CSP que bloqueia qualquer conexão e se esconde quando aberta dentro de um iframe de outro site. Essa proteção fica desligada quando a página é aberta como arquivo, porque nenhum site consegue embutir um arquivo local.
 - **Media queries com `min-width`/`max-width`**: a sintaxe de intervalo (`width <= 600px`) não funciona no Safari anterior ao 16.4, ainda comum em Macs e iPhones mais antigos. A regra do Stylelint está configurada para exigir a forma compatível.
 
 ## Problemas comuns
