@@ -70,9 +70,9 @@ function carregarPagina() {
   const logica = app.split('\n').slice(2).join('\n').replace(/let S = carregar\(\);[\s\S]*$/, '');
   const cripto = app.slice(app.indexOf('const CRIPTO_OK'), app.indexOf('let botaoSenha'));
   assert.ok(logica.includes('function resumo(') && cripto.includes('function decifrar('), 'trechos da página encontrados');
-  const ctx = vm.createContext({ console, Intl, crypto: globalThis.crypto, TextEncoder, TextDecoder, btoa, atob });
+  const ctx = vm.createContext({ console, Intl, URL, crypto: globalThis.crypto, TextEncoder, TextDecoder, btoa, atob });
   vm.runInContext(`var window = this, localStorage; (function(){ ${logica}${cripto}
-    this.pg = { estadoInicial, normalizar, resumo, avancarMes, fgtsMes, projetarFgts, fgtsPorAno, cifrar, decifrar, CRIPTO_OK, esc }; }).call(this);`, ctx);
+    this.pg = { estadoInicial, normalizar, resumo, avancarMes, fgtsMes, projetarFgts, fgtsPorAno, linkGoogle, temDados, resumoDados, cifrar, decifrar, CRIPTO_OK, esc }; }).call(this);`, ctx);
   return ctx.pg;
 }
 
@@ -233,6 +233,32 @@ test('dados adulterados são limpos antes de chegar à tela', () => {
   assert.equal(n.quitadas.length, 1);
   assert.equal(n.quitadas[0].onde, 'Conta');
   assert.doesNotMatch(JSON.stringify([c0.id, n.besteira.gastos[0].data, n.quitadas[0].mes]), /onerror|onload|<img|<svg|<script/);
+});
+
+test('onde salvar: só aceita o link de um app do Google Apps Script', () => {
+  const id = 'AKfycbx1234567890abcdefghijklmnopqrstuvwxyz_-ABCDEFG';
+  assert.equal(pg.linkGoogle(`https://script.google.com/macros/s/${id}/exec`), `https://script.google.com/macros/s/${id}/exec`);
+  assert.equal(pg.linkGoogle(`  https://script.google.com/macros/s/${id}/exec?usp=sharing#x `), `https://script.google.com/macros/s/${id}/exec`);
+  assert.equal(pg.linkGoogle(`https://script.google.com/macros/u/1/s/${id}/exec`), `https://script.google.com/macros/u/1/s/${id}/exec`);
+  assert.equal(pg.linkGoogle(`https://script.google.com/a/macros/empresa.com.br/s/${id}/exec`), `https://script.google.com/a/macros/empresa.com.br/s/${id}/exec`);
+  for (const ruim of [
+    ['java', 'script:alert(1)'].join(''),
+    `http://script.google.com/macros/s/${id}/exec`,
+    `https://script.google.com.golpe.com/macros/s/${id}/exec`,
+    `https://golpe.com/?https://script.google.com/macros/s/${id}/exec`,
+    `https://usuario@script.google.com/macros/s/${id}/exec`,
+    `https://script.google.com:8443/macros/s/${id}/exec`,
+    `https://script.google.com/macros/s/${id}/dev`,
+    'https://script.google.com/macros/s/curto/exec',
+    `https://script.google.com/macros/s/${id}/exec/../../d/x/edit`,
+    '', null
+  ]) assert.equal(pg.linkGoogle(ruim), '', String(ruim));
+});
+
+test('onde salvar: resumo mostra o que existe antes de substituir', () => {
+  assert.equal(pg.temDados(pg.estadoInicial()), false);
+  assert.equal(pg.temDados(exemplo()), true);
+  assert.equal(pg.resumoDados(exemplo()), 'salário de R$ 4.000,00, 4 contas, 2 compras no cartão, 2 porquinhos, mês de janeiro de 2027');
 });
 
 test('textos livres são escapados antes de ir para a tela', () => {
