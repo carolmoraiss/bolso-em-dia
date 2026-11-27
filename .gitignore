@@ -1,0 +1,14 @@
+node_modules/
+dist/
+app/
+.clasp.json
+.clasprc.json
+.implantacao-id
+.implantacao.log
+*.log
+.DS_Store
+*backup*.json
+*meus-dados*.json
+bolso-em-dia-*.json
+.env
+.env.*
