@@ -12,3 +12,4 @@ app/
 bolso-em-dia-*.json
 .env
 .env.*
+__pycache__/
